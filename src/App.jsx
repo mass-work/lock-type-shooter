@@ -98,6 +98,7 @@ const MODE_CONFIG = {
 const initialStats = {
   score: 0,
   hp: 100,
+  special: 0,
   combo: 0,
   maxCombo: 0,
   accuracy: 100,
@@ -348,6 +349,7 @@ function makeGameState(mode = "normal", language = "english") {
     pointer: { x: window.innerWidth / 2, y: window.innerHeight * 0.72 },
     score: 0,
     hp: 100,
+    special: 0,
     combo: 0,
     maxCombo: 0,
     breaks: 0,
@@ -404,6 +406,7 @@ function App() {
     return {
       score: Math.floor(s.score),
       hp: Math.round(s.hp),
+      special: Math.round(s.special),
       combo: s.combo,
       maxCombo: s.maxCombo,
       accuracy,
@@ -487,15 +490,38 @@ function App() {
     return clamp(base + random(-0.08, 0.08), -0.98, 0.98);
   };
 
+  const getMinimumSpawnDistance = (scale = 1) => Math.max(96, 112 * scale);
+
+  const findSpawnPlacement = (wide = false, depthMin = 0.02, depthMax = 0.16) => {
+    const s = stateRef.current;
+    let fallback = null;
+
+    for (let i = 0; i < 24; i += 1) {
+      const lane = pickLane(wide);
+      const depth = random(depthMin, depthMax);
+      const projected = projectDepth(lane, depth);
+      const minDistance = getMinimumSpawnDistance(projected.scale);
+      const clear = [...s.enemies, ...s.asteroids].every((item) => {
+        if (Math.abs((item.depth ?? 0) - depth) > 0.24) return true;
+        return distance(projected.x, projected.y, item.x, item.y) > minDistance + (item.radius ?? 0) * 0.55;
+      });
+
+      fallback = { lane, depth, projected };
+      if (clear) return fallback;
+    }
+
+    return fallback;
+  };
+
   const spawnEnemy = () => {
     const s = stateRef.current;
     const cfg = MODE_CONFIG[s.mode];
     if (s.enemies.length >= cfg.maxEnemies) return;
 
     const word = createWordEntry(s.language, s.breaks);
-    const lane = pickLane(false);
-    const depth = random(0.02, 0.14);
-    const projected = projectDepth(lane, depth);
+    const placement = findSpawnPlacement(false, 0.02, 0.14);
+    if (!placement) return;
+    const { lane, depth, projected } = placement;
     const speed = random(0.065, 0.105) + Math.min(0.045, s.breaks * 0.0018);
     const inputLength = Math.min(...word.answerOptions.map((option) => option.length));
 
@@ -527,9 +553,9 @@ function App() {
     if (!cfg.asteroid || s.asteroids.length >= cfg.maxAsteroids) return;
 
     const baseRadius = random(30, 58);
-    const lane = pickLane(true);
-    const depth = random(0.04, 0.18);
-    const projected = projectDepth(lane, depth);
+    const placement = findSpawnPlacement(true, 0.04, 0.18);
+    if (!placement) return;
+    const { lane, depth, projected } = placement;
     s.asteroids.push({
       lane,
       depth,
@@ -658,6 +684,7 @@ function App() {
     s.combo += 1;
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.breaks += 1;
+    s.special = clamp(s.special + 16 + Math.min(20, s.combo * 2), 0, 100);
     s.lockedId = null;
     s.typedText = "";
 
@@ -671,10 +698,18 @@ function App() {
     });
 
     addParticles(enemy.x, enemy.y, 40, "orange");
+    addFloater(`+${bonus}`, enemy.x, enemy.y - 44, "cyan");
     addFloater("BREAK", enemy.x, enemy.y - 20, "orange");
     s.enemies = s.enemies.filter((item) => item.id !== enemy.id);
 
-    if (s.combo >= 3) {
+    if (s.combo > 0 && s.combo % 5 === 0) {
+      const chainBonus = 600 + s.combo * 80;
+      s.score += chainBonus;
+      s.special = clamp(s.special + 18, 0, 100);
+      addFloater(`CHAIN BONUS +${chainBonus}`, enemy.x, enemy.y - 72, "orange");
+      setComboPop(`CHAIN ${s.combo} / +${chainBonus}`);
+      window.setTimeout(() => setComboPop(null), 420);
+    } else if (s.combo >= 3) {
       setComboPop(`${s.combo} COMBO`);
       window.setTimeout(() => setComboPop(null), 260);
     }
@@ -700,6 +735,7 @@ function App() {
     if (matches.length > 0) {
       s.correctKeys += 1;
       s.typedText = nextText;
+      s.special = clamp(s.special + 0.85, 0, 100);
       s.score += 12 + Math.min(80, s.combo * 3);
       const currentAnswer = matches.find((option) => option.length >= nextText.length) ?? matches[0];
       enemy.hpRate = 1 - nextText.length / currentAnswer.length;
@@ -715,6 +751,50 @@ function App() {
     } else {
       registerMiss(3);
     }
+  };
+
+  const activateSpecial = () => {
+    const s = stateRef.current;
+    if (!s.running || s.over) return;
+    if (s.special < 100) {
+      showNotice("OVERDRIVE NOT READY", "bad");
+      return;
+    }
+
+    const targets = [...s.enemies];
+    const hazards = [...s.asteroids];
+    if (!targets.length && !hazards.length) {
+      showNotice("NO TARGETS", "bad");
+      return;
+    }
+
+    const targetScore = targets.reduce((sum, enemy) => {
+      const bestAnswerLength = Math.min(...enemy.answerOptions.map((option) => option.length));
+      return sum + 420 + bestAnswerLength * 32;
+    }, 0);
+    const hazardScore = hazards.length * 220;
+    const bonus = targetScore + hazardScore + Math.max(0, s.combo) * 160;
+
+    [...targets, ...hazards].forEach((item) => {
+      addParticles(item.x, item.y, 48, item.answerOptions ? "orange" : "red");
+      addFloater("OVERDRIVE", item.x, item.y - 18, "orange");
+    });
+
+    s.score += bonus;
+    s.combo += targets.length;
+    s.maxCombo = Math.max(s.maxCombo, s.combo);
+    s.breaks += targets.length;
+    s.enemies = [];
+    s.asteroids = [];
+    s.lockedId = null;
+    s.typedText = "";
+    s.special = 0;
+    s.shake = 22;
+
+    setComboPop(`OVERDRIVE +${bonus}`);
+    window.setTimeout(() => setComboPop(null), 560);
+    showNotice("OVERDRIVE CLEAR", "good");
+    syncHud();
   };
 
   const startTraining = (nextMode = "normal", nextLanguage = language) => {
@@ -1309,6 +1389,12 @@ function App() {
         return;
       }
 
+      if (event.code === "Space") {
+        event.preventDefault();
+        activateSpecial();
+        return;
+      }
+
       if (plainKey && event.key.length === 1) {
         event.preventDefault();
         typeKey(event.key);
@@ -1364,6 +1450,13 @@ function App() {
             <div
               className={`shieldFill ${stats.hp < 30 ? "critical" : ""}`}
               style={{ width: `${stats.hp}%` }}
+            />
+          </div>
+          <span className="hudLabel specialLabel">OVERDRIVE</span>
+          <div className="specialBar">
+            <div
+              className={`specialFill ${stats.special >= 100 ? "ready" : ""}`}
+              style={{ width: `${stats.special}%` }}
             />
           </div>
         </section>
@@ -1436,6 +1529,7 @@ function App() {
             <span>Click: lock</span>
             <span>Keyboard: type</span>
             <span>ESC: unlock</span>
+            <span>Space: overdrive</span>
             <span>F2: restart</span>
           </div>
         </Overlay>

@@ -238,12 +238,25 @@ body::after {
   box-shadow: 0 0 44px rgba(100, 224, 255, 0.1);
 }
 
+.specialLabel {
+  margin-top: 9px;
+  color: var(--magenta);
+}
+
 .shieldBar {
   height: 10px;
   margin-top: 7px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.specialBar {
+  height: 8px;
+  margin-top: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 79, 193, 0.18);
 }
 
 .shieldFill {
@@ -253,6 +266,30 @@ body::after {
   transition:
     width 0.18s,
     background 0.18s;
+}
+
+.specialFill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--magenta), var(--orange), var(--cyan));
+  box-shadow: 0 0 18px rgba(255, 79, 193, 0.42);
+  transition: width 0.18s ease, filter 0.18s ease;
+}
+
+.specialFill.ready {
+  filter: brightness(1.45);
+  animation: overdriveReady 0.76s ease-in-out infinite alternate;
+}
+
+@keyframes overdriveReady {
+  from {
+    box-shadow: 0 0 16px rgba(255, 79, 193, 0.45);
+  }
+  to {
+    box-shadow:
+      0 0 24px rgba(255, 79, 193, 0.78),
+      0 0 38px rgba(100, 224, 255, 0.42);
+  }
 }
 
 .shieldFill.critical {
