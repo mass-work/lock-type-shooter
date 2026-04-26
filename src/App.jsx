@@ -73,9 +73,40 @@ const initialStats = {
   locks: 0,
 };
 
+const RANKS = [
+  { name: "S+", threshold: 12000, label: "ACE VECTOR" },
+  { name: "S", threshold: 9000, label: "ZERO MISSILE" },
+  { name: "A", threshold: 6200, label: "CLEAN BREAKER" },
+  { name: "B", threshold: 3600, label: "FIELD LOCKER" },
+  { name: "C", threshold: 1600, label: "ROOKIE PILOT" },
+  { name: "D", threshold: 0, label: "BOOT SEQUENCE" },
+];
+
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const random = (min, max) => Math.random() * (max - min) + min;
 const distance = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
+
+function getRank(stats) {
+  if (stats.breaks === 0) return RANKS[RANKS.length - 1];
+
+  const rating =
+    stats.score + stats.accuracy * 18 + stats.wpm * 14 + stats.maxCombo * 220 + stats.breaks * 80;
+
+  return RANKS.find((rank) => rating >= rank.threshold) ?? RANKS[RANKS.length - 1];
+}
+
+function getShareUrl(result) {
+  const { rank, stats } = result;
+  const pageUrl = window.location.origin + window.location.pathname;
+  const text = [
+    "LOCK / TYPE / BREAK result",
+    `SCORE ${stats.score.toLocaleString()} / RANK ${rank.name} (${rank.label})`,
+    `MAX COMBO ${stats.maxCombo} / ACC ${stats.accuracy}% / WPM ${stats.wpm}`,
+    "#LockTypeBreak",
+  ].join("\n");
+
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pageUrl)}`;
+}
 
 function makeGameState(mode = "normal") {
   return {
@@ -329,11 +360,13 @@ function App() {
     s.over = true;
     s.lockedId = null;
     const finalStats = computeStats();
+    const rank = getRank(finalStats);
 
     setResult({
       title,
       message,
       stats: finalStats,
+      rank,
     });
     setPhase("result");
     syncHud();
@@ -887,9 +920,9 @@ function App() {
             BREAK
           </h1>
           <p className="description">
-            上から接近する敵をマウスやトラックボールで捕捉し、クリックでロック。
+            上から接近するターゲットをマウスやトラックボールで捕捉し、クリックでロック。
             <br />
-            表示された単語をキーボードで入力して撃破する、ポインティング＋タイピング練習ゲームです。
+            照準の安定、入力精度、連続撃破でランクを伸ばすデスクトップ射撃トレーナー。
           </p>
           <div className="buttonRow">
             <button onClick={() => startTraining("normal")}>START TRAINING</button>
@@ -913,8 +946,15 @@ function App() {
           <h1 className="title small">{result.title}</h1>
           <p className="description">{result.message}</p>
 
+          <div className="rankPlate">
+            <span>RANK</span>
+            <strong>{result.rank.name}</strong>
+            <em>{result.rank.label}</em>
+          </div>
+
           <div className="resultGrid">
             <Metric label="SCORE" value={result.stats.score.toLocaleString()} />
+            <Metric label="RANK" value={result.rank.name} />
             <Metric label="MAX COMBO" value={result.stats.maxCombo} />
             <Metric label="ACCURACY" value={`${result.stats.accuracy}%`} />
             <Metric label="WPM" value={result.stats.wpm} />
@@ -927,6 +967,9 @@ function App() {
             <button className="orangeButton" onClick={continueTraining}>
               CONTINUE
             </button>
+            <a className="shareButton" href={getShareUrl(result)} target="_blank" rel="noreferrer">
+              POST TO X
+            </a>
           </div>
         </Overlay>
       )}
