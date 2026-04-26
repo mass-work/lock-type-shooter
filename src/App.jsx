@@ -63,6 +63,89 @@ const JAPANESE_WORDS = [
   { prompt: "補足", reading: "ほそく" },
   { prompt: "突破", reading: "とっぱ" },
   { prompt: "信号", reading: "しんごう" },
+  { prompt: "照射", reading: "しょうしゃ" },
+  { prompt: "追跡", reading: "ついせき" },
+  { prompt: "誘導", reading: "ゆうどう" },
+  { prompt: "敵影", reading: "てきえい" },
+  { prompt: "機雷", reading: "きらい" },
+  { prompt: "軌道", reading: "きどう" },
+  { prompt: "航路", reading: "こうろ" },
+  { prompt: "発射", reading: "はっしゃ" },
+  { prompt: "弾幕", reading: "だんまく" },
+  { prompt: "爆発", reading: "ばくはつ" },
+  { prompt: "回復", reading: "かいふく" },
+  { prompt: "修復", reading: "しゅうふく" },
+  { prompt: "解析", reading: "かいせき" },
+  { prompt: "確認", reading: "かくにん" },
+  { prompt: "監視", reading: "かんし" },
+  { prompt: "警戒", reading: "けいかい" },
+  { prompt: "緊急", reading: "きんきゅう" },
+  { prompt: "脱出", reading: "だっしゅつ" },
+  { prompt: "離脱", reading: "りだつ" },
+  { prompt: "追撃", reading: "ついげき" },
+  { prompt: "命中", reading: "めいちゅう" },
+  { prompt: "偏差", reading: "へんさ" },
+  { prompt: "視界", reading: "しかい" },
+  { prompt: "照合", reading: "しょうごう" },
+  { prompt: "起動", reading: "きどう" },
+  { prompt: "停止", reading: "ていし" },
+  { prompt: "再起", reading: "さいき" },
+  { prompt: "遠隔", reading: "えんかく" },
+  { prompt: "近接", reading: "きんせつ" },
+  { prompt: "主砲", reading: "しゅほう" },
+  { prompt: "副砲", reading: "ふくほう" },
+  { prompt: "兵装", reading: "へいそう" },
+  { prompt: "装甲", reading: "そうこう" },
+  { prompt: "船体", reading: "せんたい" },
+  { prompt: "艦橋", reading: "かんきょう" },
+  { prompt: "推進", reading: "すいしん" },
+  { prompt: "噴射", reading: "ふんしゃ" },
+  { prompt: "姿勢", reading: "しせい" },
+  { prompt: "同期", reading: "どうき" },
+  { prompt: "遅延", reading: "ちえん" },
+  { prompt: "補給", reading: "ほきゅう" },
+  { prompt: "護衛", reading: "ごえい" },
+  { prompt: "迎撃", reading: "げいげき" },
+  { prompt: "偵察", reading: "ていさつ" },
+  { prompt: "予測", reading: "よそく" },
+  { prompt: "命令", reading: "めいれい" },
+  { prompt: "連携", reading: "れんけい" },
+  { prompt: "確保", reading: "かくほ" },
+  { prompt: "圧縮", reading: "あっしゅく" },
+  { prompt: "展開", reading: "てんかい" },
+  { prompt: "反転", reading: "はんてん" },
+  { prompt: "包囲", reading: "ほうい" },
+  { prompt: "乱射", reading: "らんしゃ" },
+  { prompt: "狙撃", reading: "そげき" },
+  { prompt: "補正", reading: "ほせい" },
+  { prompt: "低速", reading: "ていそく" },
+  { prompt: "高速", reading: "こうそく" },
+  { prompt: "精密", reading: "せいみつ" },
+  { prompt: "瞬間", reading: "しゅんかん" },
+  { prompt: "収束", reading: "しゅうそく" },
+  { prompt: "放電", reading: "ほうでん" },
+  { prompt: "雷撃", reading: "らいげき" },
+  { prompt: "熱源", reading: "ねつげん" },
+  { prompt: "走査", reading: "そうさ" },
+  { prompt: "深度", reading: "しんど" },
+  { prompt: "座標", reading: "ざひょう" },
+  { prompt: "旋回", reading: "せんかい" },
+  { prompt: "航行", reading: "こうこう" },
+  { prompt: "探知", reading: "たんち" },
+  { prompt: "受信", reading: "じゅしん" },
+  { prompt: "送信", reading: "そうしん" },
+  { prompt: "暗号", reading: "あんごう" },
+  { prompt: "障壁", reading: "しょうへき" },
+  { prompt: "重力", reading: "じゅうりょく" },
+  { prompt: "真空", reading: "しんくう" },
+  { prompt: "流星", reading: "りゅうせい" },
+  { prompt: "銀河", reading: "ぎんが" },
+  { prompt: "恒星", reading: "こうせい" },
+  { prompt: "衛星", reading: "えいせい" },
+  { prompt: "光学", reading: "こうがく" },
+  { prompt: "量子", reading: "りょうし" },
+  { prompt: "電磁", reading: "でんじ" },
+  { prompt: "反射", reading: "はんしゃ" },
 ];
 
 const LANGUAGE_CONFIG = {
@@ -81,10 +164,10 @@ const MODE_CONFIG = {
     label: "NORMAL MODE",
     startEnemies: 1,
     maxEnemies: 4,
-    maxAsteroids: 6,
+    maxAsteroids: 5,
     asteroid: true,
-    enemyBaseInterval: 1420,
-    enemyMinInterval: 560,
+    enemyBaseInterval: 1540,
+    enemyMinInterval: 680,
   },
   practice: {
     label: "PRACTICE MODE",
@@ -92,8 +175,43 @@ const MODE_CONFIG = {
     maxEnemies: 3,
     maxAsteroids: 2,
     asteroid: true,
-    enemyBaseInterval: 1650,
-    enemyMinInterval: 720,
+    enemyBaseInterval: 1780,
+    enemyMinInterval: 860,
+  },
+};
+
+const NO_MISS_BONUS_RULES = {
+  break: {
+    step: 10,
+    majorEvery: 30,
+    baseScore: 900,
+    scoreRamp: 240,
+    majorScore: 760,
+    special: 24,
+    majorSpecial: 10,
+    shield: 8,
+    majorShield: 5,
+    title: "NO MISS",
+    unit: "BREAKS",
+    floater: "NO MISS",
+    detail: "NO-DAMAGE BREAK STREAK",
+    color: "magenta",
+  },
+  typing: {
+    step: 75,
+    majorEvery: 225,
+    baseScore: 650,
+    scoreRamp: 180,
+    majorScore: 550,
+    special: 18,
+    majorSpecial: 8,
+    shield: 5,
+    majorShield: 3,
+    title: "CLEAN TYPE",
+    unit: "KEYS",
+    floater: "CLEAN TYPE",
+    detail: "NO-MISS TYPING STREAK",
+    color: "cyan",
   },
 };
 
@@ -110,6 +228,8 @@ const initialStats = {
   locks: 0,
   noMissBreaks: 0,
   noMissKeys: 0,
+  nextNoMissBreakBonus: NO_MISS_BONUS_RULES.break.step,
+  nextNoMissKeyBonus: NO_MISS_BONUS_RULES.typing.step,
 };
 
 const RANKS = [
@@ -124,6 +244,16 @@ const RANKS = [
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const random = (min, max) => Math.random() * (max - min) + min;
 const distance = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
+const getPlayfieldBottom = (height) => height - Math.min(170, height * 0.22);
+
+function getNoMissBonus(kind, milestone) {
+  const rule = NO_MISS_BONUS_RULES[kind];
+  const tier = Math.max(1, Math.floor(milestone / rule.step));
+  const major = milestone % rule.majorEvery === 0;
+  const amount = rule.baseScore + (tier - 1) * rule.scoreRamp + (major ? rule.majorScore : 0);
+
+  return { rule, amount, major };
+}
 
 const ROMAJI_MAP = {
   きゃ: ["kya"],
@@ -320,7 +450,7 @@ function getShareUrl(result) {
     `ランク：${rank.name}（${rank.label}）`,
     `最大コンボ：${stats.maxCombo}`,
     `正確率：${stats.accuracy}% / WPM：${stats.wpm}`,
-    "#LockTypeShooting",
+    "#LockTypeShooter",
   ].join("\n");
 
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
@@ -345,19 +475,21 @@ function makeGameState(mode = "normal", language = "english") {
     over: false,
     width: window.innerWidth,
     height: window.innerHeight,
-    dpr: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
+    dpr: Math.max(1, Math.min(1.5, window.devicePixelRatio || 1)),
     stars: [],
     enemies: [],
     asteroids: [],
     particles: [],
     floaters: [],
     shots: [],
+    surges: [],
     lockedId: null,
     typedText: "",
-    pointer: { x: window.innerWidth / 2, y: window.innerHeight * 0.72 },
+    pointer: { x: window.innerWidth / 2, y: Math.min(window.innerHeight * 0.72, getPlayfieldBottom(window.innerHeight) - 8) },
     score: 0,
     hp: 100,
     special: 0,
+    overdriveAnnounced: false,
     combo: 0,
     maxCombo: 0,
     breaks: 0,
@@ -366,6 +498,7 @@ function makeGameState(mode = "normal", language = "english") {
     correctKeys: 0,
     startAt: 0,
     lastFrame: performance.now(),
+    lastHudSync: 0,
     lastEnemy: 0,
     lastAsteroid: 0,
     nextId: 1,
@@ -373,8 +506,8 @@ function makeGameState(mode = "normal", language = "english") {
     lockTimes: [],
     noMissBreaks: 0,
     noMissKeys: 0,
-    nextNoMissBreakBonus: 10,
-    nextNoMissKeyBonus: 75,
+    nextNoMissBreakBonus: NO_MISS_BONUS_RULES.break.step,
+    nextNoMissKeyBonus: NO_MISS_BONUS_RULES.typing.step,
   };
 }
 
@@ -382,6 +515,8 @@ function App() {
   const canvasRef = useRef(null);
   const stateRef = useRef(makeGameState("normal"));
   const animationRef = useRef(null);
+  const audioRef = useRef(null);
+  const soundEnabledRef = useRef(true);
 
   const [phase, setPhase] = useState("title");
   const [mode, setMode] = useState("normal");
@@ -393,8 +528,166 @@ function App() {
   const [bonusBanner, setBonusBanner] = useState(null);
   const [damageFlash, setDamageFlash] = useState(false);
   const [result, setResult] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const currentModeConfig = useMemo(() => MODE_CONFIG[mode], [mode]);
+
+  const makeNoiseBuffer = (ctx) => {
+    const length = Math.floor(ctx.sampleRate * 0.45);
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < length; i += 1) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    return buffer;
+  };
+
+  const getAudioEngine = (force = false) => {
+    if (!force && !soundEnabledRef.current) return null;
+    if (typeof window === "undefined") return null;
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+
+    if (!audioRef.current) {
+      const ctx = new AudioContextClass();
+      const master = ctx.createGain();
+      const compressor = ctx.createDynamicsCompressor();
+      master.gain.value = 0.24;
+      master.connect(compressor);
+      compressor.connect(ctx.destination);
+      audioRef.current = {
+        ctx,
+        master,
+        noiseBuffer: makeNoiseBuffer(ctx),
+      };
+    }
+
+    const engine = audioRef.current;
+    if (engine.ctx.state === "suspended") {
+      void engine.ctx.resume();
+    }
+
+    return engine;
+  };
+
+  const playSfx = (name, options = {}) => {
+    const engine = getAudioEngine();
+    if (!engine) return;
+
+    const { ctx, master, noiseBuffer } = engine;
+    const now = ctx.currentTime;
+    const amount = options.amount ?? 1;
+
+    const tone = (frequency, duration, config = {}) => {
+      const start = now + (config.delay ?? 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = config.type ?? "sine";
+      osc.frequency.setValueAtTime(Math.max(20, frequency), start);
+      if (config.to) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, config.to), start + duration);
+      }
+      if (config.detune) {
+        osc.detune.setValueAtTime(config.detune, start);
+      }
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(config.gain ?? 0.05, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start(start);
+      osc.stop(start + duration + 0.03);
+    };
+
+    const noise = (duration, config = {}) => {
+      const start = now + (config.delay ?? 0);
+      const source = ctx.createBufferSource();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      source.buffer = noiseBuffer;
+      filter.type = config.filterType ?? "bandpass";
+      filter.frequency.setValueAtTime(config.frequency ?? 1200, start);
+      filter.Q.value = config.q ?? 1.6;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(config.gain ?? 0.04, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(master);
+      source.start(start);
+      source.stop(start + duration + 0.03);
+    };
+
+    switch (name) {
+      case "start":
+        tone(220, 0.14, { to: 440, type: "triangle", gain: 0.045 });
+        tone(330, 0.18, { to: 660, type: "sine", gain: 0.034, delay: 0.08 });
+        break;
+      case "lock":
+        tone(520, 0.08, { to: 980, type: "square", gain: 0.034 });
+        tone(1040, 0.06, { to: 780, type: "sine", gain: 0.028, delay: 0.05 });
+        break;
+      case "unlock":
+        tone(440, 0.1, { to: 240, type: "triangle", gain: 0.03 });
+        break;
+      case "type":
+        tone(780 + Math.min(260, amount * 12), 0.035, { to: 1180 + Math.min(220, amount * 10), type: "triangle", gain: 0.018 });
+        break;
+      case "break":
+        tone(160, 0.16, { to: 70, type: "sawtooth", gain: 0.05 });
+        tone(620, 0.12, { to: 1320, type: "triangle", gain: 0.042 });
+        noise(0.16, { frequency: 1600, gain: 0.035 });
+        break;
+      case "chain":
+        tone(540, 0.08, { to: 820, type: "triangle", gain: 0.032 });
+        tone(720, 0.08, { to: 1080, type: "triangle", gain: 0.032, delay: 0.07 });
+        tone(920, 0.1, { to: 1460, type: "sine", gain: 0.034, delay: 0.14 });
+        break;
+      case "miss":
+        tone(190, 0.2, { to: 64, type: "sawtooth", gain: 0.052 });
+        noise(0.18, { filterType: "lowpass", frequency: 720, gain: 0.04 });
+        break;
+      case "deny":
+        tone(220, 0.08, { to: 160, type: "square", gain: 0.026 });
+        tone(170, 0.08, { to: 120, type: "square", gain: 0.024, delay: 0.07 });
+        break;
+      case "ready":
+        tone(440, 0.14, { to: 660, type: "sine", gain: 0.034 });
+        tone(660, 0.16, { to: 990, type: "triangle", gain: 0.035, delay: 0.08 });
+        tone(990, 0.2, { to: 1320, type: "sine", gain: 0.034, delay: 0.16 });
+        break;
+      case "bonus":
+        tone(520, 0.1, { to: 780, type: "triangle", gain: 0.038 });
+        tone(780, 0.12, { to: 1170, type: "triangle", gain: 0.038, delay: 0.08 });
+        tone(options.major ? 1320 : 980, 0.22, { to: options.major ? 1980 : 1480, type: "sine", gain: options.major ? 0.046 : 0.034, delay: 0.16 });
+        if (options.major) noise(0.24, { frequency: 2600, gain: 0.03, delay: 0.04 });
+        break;
+      case "overdrive":
+        tone(90, 0.34, { to: 48, type: "sawtooth", gain: 0.064 });
+        tone(420, 0.42, { to: 1800, type: "triangle", gain: 0.052 });
+        tone(820, 0.34, { to: 2400, type: "sine", gain: 0.04, delay: 0.1 });
+        noise(0.32, { frequency: 2200, gain: 0.05 });
+        break;
+      default:
+        break;
+    }
+  };
+
+  const toggleSound = () => {
+    const next = !soundEnabledRef.current;
+    soundEnabledRef.current = next;
+    setSoundEnabled(next);
+
+    if (next) {
+      getAudioEngine(true);
+      window.setTimeout(() => playSfx("start"), 0);
+    } else if (audioRef.current?.ctx?.state === "running") {
+      void audioRef.current.ctx.suspend();
+    }
+  };
 
   const showNotice = (text, type = "info") => {
     setNotice({ text, type, id: Math.random() });
@@ -402,15 +695,29 @@ function App() {
     showNotice.timer = window.setTimeout(() => setNotice(null), 760);
   };
 
-  const showBonus = (title, detail, amount, type = "break") => {
-    setBonusBanner({ title, detail, amount, type, id: Math.random() });
+  const showBonus = (title, detail, amount, type = "break", major = false) => {
+    setBonusBanner({ title, detail, amount, type, major, id: Math.random() });
+    playSfx("bonus", { major });
     window.clearTimeout(showBonus.timer);
-    showBonus.timer = window.setTimeout(() => setBonusBanner(null), 1500);
+    showBonus.timer = window.setTimeout(() => setBonusBanner(null), major ? 1900 : 1500);
   };
 
   const triggerDamage = () => {
     setDamageFlash(true);
     window.setTimeout(() => setDamageFlash(false), 80);
+  };
+
+  const chargeSpecial = (amount) => {
+    const s = stateRef.current;
+    const wasReady = s.special >= 100;
+    s.special = clamp(s.special + amount, 0, 100);
+
+    if (!wasReady && s.special >= 100 && !s.overdriveAnnounced) {
+      s.overdriveAnnounced = true;
+      s.shake = Math.max(s.shake, 14);
+      playSfx("ready");
+      showNotice("OVERDRIVE READY", "good");
+    }
   };
 
   const computeStats = () => {
@@ -435,6 +742,8 @@ function App() {
       locks: s.locks,
       noMissBreaks: s.noMissBreaks,
       noMissKeys: s.noMissKeys,
+      nextNoMissBreakBonus: s.nextNoMissBreakBonus,
+      nextNoMissKeyBonus: s.nextNoMissKeyBonus,
     };
   };
 
@@ -462,7 +771,7 @@ function App() {
 
   const createStars = () => {
     const s = stateRef.current;
-    s.stars = Array.from({ length: 170 }, () => ({
+    s.stars = Array.from({ length: 115 }, () => ({
       x: random(0, s.width),
       y: random(0, s.height),
       size: random(0.5, 2.1),
@@ -478,7 +787,9 @@ function App() {
 
     s.width = window.innerWidth;
     s.height = window.innerHeight;
-    s.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    s.dpr = Math.max(1, Math.min(1.5, window.devicePixelRatio || 1));
+    s.pointer.x = clamp(s.pointer.x, 0, s.width);
+    s.pointer.y = clamp(s.pointer.y, 0, getPlayfieldBottom(s.height) - 8);
 
     canvas.width = s.width * s.dpr;
     canvas.height = s.height * s.dpr;
@@ -493,7 +804,7 @@ function App() {
   const projectDepth = (lane, depth, bob = 0) => {
     const s = stateRef.current;
     const horizon = s.height * 0.34;
-    const floor = s.height * 0.84;
+    const floor = getPlayfieldBottom(s.height);
     const eased = depth ** 1.58;
     const scale = 0.38 + depth * 1.12;
     const spread = s.width * (0.2 + depth * 0.32);
@@ -548,7 +859,7 @@ function App() {
     const placement = findSpawnPlacement(false, 0.02, 0.14);
     if (!placement) return;
     const { lane, depth, projected } = placement;
-    const speed = random(0.065, 0.105) + Math.min(0.045, s.breaks * 0.0018);
+    const speed = random(0.045, 0.074) + Math.min(0.03, s.breaks * 0.0012);
     const inputLength = Math.min(...word.answerOptions.map((option) => option.length));
 
     s.enemies.push({
@@ -559,7 +870,7 @@ function App() {
       depthSpeed: speed,
       x: projected.x,
       y: projected.y,
-      vx: random(-0.075, 0.075),
+      vx: random(-0.055, 0.055),
       vy: speed,
       scale: projected.scale,
       baseRadius: 25 + Math.min(18, inputLength * 0.9),
@@ -578,23 +889,28 @@ function App() {
     const cfg = MODE_CONFIG[s.mode];
     if (!cfg.asteroid || s.asteroids.length >= cfg.maxAsteroids) return;
 
-    const baseRadius = random(30, 58);
-    const placement = findSpawnPlacement(true, 0.04, 0.18);
+    const baseRadius = random(32, 62);
+    const placement = findSpawnPlacement(true, 0.03, 0.16);
     if (!placement) return;
     const { lane, depth, projected } = placement;
+    const crossDirection = lane > 0 ? random(-0.34, -0.08) : random(0.08, 0.34);
+    const depthSpeed = random(0.06, 0.18);
     s.asteroids.push({
       lane,
       depth,
-      depthSpeed: random(0.085, 0.145),
+      depthSpeed,
       x: projected.x,
       y: projected.y,
-      vx: random(-0.12, 0.12),
+      vx: crossDirection + random(-0.06, 0.06),
       vy: 0,
       scale: projected.scale,
       baseRadius,
       radius: baseRadius * projected.scale,
+      hitRadius: baseRadius * projected.scale * 0.68,
+      phase: random(0, Math.PI * 2),
+      wobble: random(0.01, 0.06),
       rotation: random(0, Math.PI * 2),
-      rotationVelocity: random(-2, 2),
+      rotationVelocity: random(-2.8, 2.8),
       trail: [],
       dead: false,
       points: Array.from({ length: 8 }, (_, index) => ({
@@ -606,7 +922,10 @@ function App() {
 
   const addParticles = (x, y, count, color) => {
     const s = stateRef.current;
-    for (let i = 0; i < count; i += 1) {
+    const budget = Math.max(0, 260 - s.particles.length);
+    const actualCount = Math.min(count, budget, 70);
+
+    for (let i = 0; i < actualCount; i += 1) {
       const angle = random(0, Math.PI * 2);
       const velocity = random(60, 265);
       s.particles.push({
@@ -633,6 +952,71 @@ function App() {
     });
   };
 
+  const addMilestoneSurge = (x, y, type = "break", major = false) => {
+    const s = stateRef.current;
+    const color = type === "typing" ? "cyan" : "magenta";
+
+    if (s.surges.length > 4) s.surges.shift();
+    s.surges.push({
+      x,
+      y,
+      type,
+      major,
+      life: major ? 1.15 : 0.82,
+      maxLife: major ? 1.15 : 0.82,
+      spin: random(-0.6, 0.6),
+    });
+
+    const rayCount = major ? 7 : 4;
+    for (let i = 0; i < rayCount; i += 1) {
+      const angle = (i / rayCount) * Math.PI * 2 + random(-0.18, 0.18);
+      const spread = major ? random(120, 230) : random(70, 150);
+      s.shots.push({
+        x: s.pointer.x,
+        y: s.pointer.y,
+        tx: x + Math.cos(angle) * spread,
+        ty: y + Math.sin(angle) * spread,
+        life: major ? 0.34 : 0.24,
+        maxLife: major ? 0.34 : 0.24,
+        color,
+      });
+    }
+
+    if (s.shots.length > 30) {
+      s.shots.splice(0, s.shots.length - 30);
+    }
+  };
+
+  const awardNoMissBonus = (kind, milestone, x, y) => {
+    const s = stateRef.current;
+    const { rule, amount, major } = getNoMissBonus(kind, milestone);
+    const title = `${major ? "PRISM " : ""}${rule.title} ${milestone} ${rule.unit}`;
+
+    s.score += amount;
+    chargeSpecial(rule.special + (major ? rule.majorSpecial : 0));
+    s.hp = clamp(s.hp + rule.shield + (major ? rule.majorShield : 0), 0, 100);
+    s.shake = Math.max(s.shake, major ? 36 : 22);
+
+    addMilestoneSurge(x, y, kind, major);
+    addParticles(x, y, major ? 118 : 72, rule.color);
+    addParticles(s.pointer.x, s.pointer.y, major ? 76 : 44, kind === "typing" ? "cyan" : "magenta");
+    addFloater(`${rule.floater} ${milestone} +${amount}`, x, y - (major ? 118 : 84), rule.color);
+    showBonus(title, rule.detail, amount, kind, major);
+  };
+
+  const awardPendingNoMissBonuses = (kind, x, y) => {
+    const s = stateRef.current;
+    const rule = NO_MISS_BONUS_RULES[kind];
+    const countKey = kind === "break" ? "noMissBreaks" : "noMissKeys";
+    const nextKey = kind === "break" ? "nextNoMissBreakBonus" : "nextNoMissKeyBonus";
+
+    while (s[countKey] >= s[nextKey]) {
+      const milestone = s[nextKey];
+      awardNoMissBonus(kind, milestone, x, y);
+      s[nextKey] += rule.step;
+    }
+  };
+
   const hitTestEnemy = (x, y) => {
     const s = stateRef.current;
     return [...s.enemies]
@@ -650,6 +1034,7 @@ function App() {
     s.lockTimes.push(performance.now() - enemy.born);
 
     addParticles(enemy.x, enemy.y, 12, "cyan");
+    playSfx("lock");
     showNotice("LOCKED", "good");
     syncHud();
   };
@@ -658,6 +1043,7 @@ function App() {
     const s = stateRef.current;
     s.lockedId = null;
     s.typedText = "";
+    playSfx("unlock");
     showNotice("UNLOCKED");
     syncHud();
   };
@@ -686,8 +1072,8 @@ function App() {
     s.combo = 0;
     s.noMissBreaks = 0;
     s.noMissKeys = 0;
-    s.nextNoMissBreakBonus = 10;
-    s.nextNoMissKeyBonus = 75;
+    s.nextNoMissBreakBonus = NO_MISS_BONUS_RULES.break.step;
+    s.nextNoMissKeyBonus = NO_MISS_BONUS_RULES.typing.step;
     s.hp = clamp(s.hp - damage, 0, 100);
     s.shake = 12;
 
@@ -695,6 +1081,7 @@ function App() {
     if (enemy) enemy.shake = 8;
 
     triggerDamage();
+    playSfx("miss");
     showNotice("MISS", "bad");
 
     if (s.hp <= 0) {
@@ -715,21 +1102,9 @@ function App() {
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.breaks += 1;
     s.noMissBreaks += 1;
-    s.special = clamp(s.special + 16 + Math.min(20, s.combo * 2), 0, 100);
+    chargeSpecial(16 + Math.min(20, s.combo * 2));
 
-    if (s.noMissBreaks >= s.nextNoMissBreakBonus) {
-      const tier = Math.floor(s.noMissBreaks / 10);
-      const streakBonus = 1200 + tier * 420;
-      s.score += streakBonus;
-      s.special = clamp(s.special + 34, 0, 100);
-      s.hp = clamp(s.hp + 10, 0, 100);
-      s.shake = Math.max(s.shake, 28);
-      addParticles(enemy.x, enemy.y, 88, "magenta");
-      addParticles(s.pointer.x, s.pointer.y, 54, "cyan");
-      addFloater(`NO MISS ${s.noMissBreaks} BREAKS +${streakBonus}`, enemy.x, enemy.y - 96, "magenta");
-      showBonus(`NO MISS ${s.noMissBreaks} BREAKS`, "連続撃破ボーナス", streakBonus, "break");
-      s.nextNoMissBreakBonus += 10;
-    }
+    awardPendingNoMissBonuses("break", enemy.x, enemy.y);
     s.lockedId = null;
     s.typedText = "";
 
@@ -745,13 +1120,15 @@ function App() {
     addParticles(enemy.x, enemy.y, 40, "orange");
     addFloater(`+${bonus}`, enemy.x, enemy.y - 44, "cyan");
     addFloater("BREAK", enemy.x, enemy.y - 20, "orange");
+    playSfx("break");
     s.enemies = s.enemies.filter((item) => item.id !== enemy.id);
 
     if (s.combo > 0 && s.combo % 5 === 0) {
       const chainBonus = 240 + s.combo * 36;
       s.score += chainBonus;
-      s.special = clamp(s.special + 18, 0, 100);
+      chargeSpecial(18);
       addFloater(`CHAIN BONUS +${chainBonus}`, enemy.x, enemy.y - 72, "orange");
+      playSfx("chain");
       setComboPop(`CHAIN ${s.combo} / +${chainBonus}`);
       window.setTimeout(() => setComboPop(null), 420);
     } else if (s.combo >= 3) {
@@ -781,21 +1158,11 @@ function App() {
       s.correctKeys += 1;
       s.noMissKeys += 1;
       s.typedText = nextText;
-      s.special = clamp(s.special + 0.85, 0, 100);
+      chargeSpecial(0.85);
       s.score += 6 + Math.min(34, s.combo * 1.4);
+      playSfx("type", { amount: s.combo });
 
-      if (s.noMissKeys >= s.nextNoMissKeyBonus) {
-        const tier = Math.floor(s.noMissKeys / 75);
-        const typingBonus = 850 + tier * 260;
-        s.score += typingBonus;
-        s.special = clamp(s.special + 24, 0, 100);
-        s.hp = clamp(s.hp + 6, 0, 100);
-        s.shake = Math.max(s.shake, 18);
-        addParticles(enemy.x, enemy.y, 42, "cyan");
-        addFloater(`CLEAN TYPE ${s.noMissKeys} +${typingBonus}`, enemy.x, enemy.y - 76, "cyan");
-        showBonus(`CLEAN TYPE ${s.noMissKeys}`, "ノーミスタイピングボーナス", typingBonus, "typing");
-        s.nextNoMissKeyBonus += 75;
-      }
+      awardPendingNoMissBonuses("typing", enemy.x, enemy.y);
       const currentAnswer = matches.find((option) => option.length >= nextText.length) ?? matches[0];
       enemy.hpRate = 1 - nextText.length / currentAnswer.length;
       enemy.shake = 4;
@@ -816,6 +1183,7 @@ function App() {
     const s = stateRef.current;
     if (!s.running || s.over) return;
     if (s.special < 100) {
+      playSfx("deny");
       showNotice("OVERDRIVE NOT READY", "bad");
       return;
     }
@@ -823,6 +1191,7 @@ function App() {
     const targets = [...s.enemies];
     const hazards = [...s.asteroids];
     if (!targets.length && !hazards.length) {
+      playSfx("deny");
       showNotice("NO TARGETS", "bad");
       return;
     }
@@ -843,13 +1212,19 @@ function App() {
     s.combo += targets.length;
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.breaks += targets.length;
+    s.noMissBreaks += targets.length;
+    if (targets.length) {
+      awardPendingNoMissBonuses("break", s.pointer.x, s.pointer.y - 72);
+    }
     s.enemies = [];
     s.asteroids = [];
     s.lockedId = null;
     s.typedText = "";
     s.special = 0;
+    s.overdriveAnnounced = false;
     s.shake = 22;
 
+    playSfx("overdrive");
     setComboPop(`OVERDRIVE +${bonus}`);
     window.setTimeout(() => setComboPop(null), 560);
     showNotice("OVERDRIVE CLEAR", "good");
@@ -858,6 +1233,8 @@ function App() {
 
   const startTraining = (nextMode = "normal", nextLanguage = language) => {
     blurActiveControl();
+    getAudioEngine();
+    playSfx("start");
     setMode(nextMode);
     setLanguage(nextLanguage);
     stateRef.current = makeGameState(nextMode, nextLanguage);
@@ -877,20 +1254,6 @@ function App() {
     setResult(null);
     setTarget(null);
     showNotice("TRAINING START", "good");
-    syncHud();
-  };
-
-  const continueTraining = () => {
-    blurActiveControl();
-    const s = stateRef.current;
-    s.over = false;
-    s.running = true;
-    s.hp = Math.max(s.hp, 40);
-    spawnEnemy();
-    s.lastEnemy = performance.now();
-    s.lastAsteroid = performance.now();
-    setPhase("game");
-    setResult(null);
     syncHud();
   };
 
@@ -1057,25 +1420,55 @@ function App() {
       ctx.stroke();
     }
 
-    ctx.fillStyle = locked ? "rgba(255,138,42,.98)" : "rgba(233,251,255,.82)";
-    ctx.font =
-      enemy.language === "japanese"
-        ? "800 15px Inter, ui-sans-serif, system-ui, sans-serif"
-        : "700 12px ui-monospace, SFMono-Regular, Consolas, monospace";
-    ctx.textAlign = "center";
-    ctx.fillText(enemy.prompt, 0, enemy.baseRadius + 38);
+    ctx.restore();
 
+    const labelSize = locked ? 18 : clamp(13 + enemy.depth * 5, 13, 18);
+    const labelY = y + Math.max(38, enemy.radius + 24);
+    const labelFont =
+      enemy.language === "japanese"
+        ? `900 ${labelSize}px Inter, ui-sans-serif, system-ui, sans-serif`
+        : `900 ${labelSize}px ui-monospace, SFMono-Regular, Consolas, monospace`;
+
+    ctx.save();
+    ctx.font = labelFont;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const plateWidth = Math.min(s.width - 28, Math.max(72, ctx.measureText(enemy.prompt).width + 28));
+    const plateHeight = labelSize + 15;
+    const labelX = clamp(x, plateWidth / 2 + 14, s.width - plateWidth / 2 - 14);
+    ctx.globalAlpha = locked ? 0.98 : 0.82;
+    ctx.fillStyle = locked ? "rgba(12, 10, 18, .9)" : "rgba(3, 8, 18, .74)";
+    ctx.strokeStyle = locked ? "rgba(255,177,59,.78)" : "rgba(100,224,255,.34)";
+    ctx.lineWidth = 1;
+    ctx.shadowColor = locked ? "rgba(255,177,59,.42)" : "rgba(100,224,255,.2)";
+    ctx.shadowBlur = locked ? 18 : 10;
+    ctx.fillRect(labelX - plateWidth / 2, labelY - plateHeight / 2, plateWidth, plateHeight);
+    ctx.strokeRect(labelX - plateWidth / 2, labelY - plateHeight / 2, plateWidth, plateHeight);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = locked ? "rgba(255,209,102,.98)" : "rgba(233,251,255,.9)";
+    ctx.fillText(enemy.prompt, labelX, labelY + 0.5);
     ctx.restore();
   };
 
   const drawAsteroid = (ctx, asteroid) => {
     ctx.save();
-    ctx.globalAlpha = 0.76;
+    ctx.globalAlpha = 0.82;
+    if (asteroid.trail.length > 1) {
+      ctx.beginPath();
+      asteroid.trail.forEach((point, index) => {
+        if (index === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.strokeStyle = "rgba(255, 177, 59, .26)";
+      ctx.lineWidth = Math.max(2, asteroid.radius * 0.08);
+      ctx.stroke();
+    }
+
     asteroid.trail.forEach((point, index) => {
       const alpha = (index + 1) / asteroid.trail.length;
       ctx.beginPath();
-      ctx.arc(point.x, point.y, asteroid.radius * 0.18 * alpha, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 177, 59, ${0.12 * alpha})`;
+      ctx.arc(point.x, point.y, Math.max(2, asteroid.radius * 0.26 * alpha), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 177, 59, ${0.16 * alpha})`;
       ctx.fill();
     });
     ctx.globalAlpha = 1;
@@ -1100,9 +1493,15 @@ function App() {
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.arc(0, 0, asteroid.baseRadius + 8, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255,65,109,.26)";
-    ctx.lineWidth = 1.5;
+    ctx.arc(0, 0, asteroid.baseRadius * 0.68, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,65,109,.48)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, asteroid.baseRadius + 12, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,209,102,.18)";
+    ctx.lineWidth = 1;
     ctx.stroke();
 
     ctx.restore();
@@ -1111,7 +1510,7 @@ function App() {
   const drawArenaGrid = (ctx, now) => {
     const s = stateRef.current;
     const horizon = s.height * 0.34;
-    const floor = s.height * 0.86;
+    const floor = getPlayfieldBottom(s.height) + 18;
     const centerX = s.width / 2;
     const pulse = Math.sin(now * 0.0015) * 0.5 + 0.5;
 
@@ -1228,15 +1627,84 @@ function App() {
     ctx.restore();
   };
 
+  const drawMilestoneSurges = (ctx, dt) => {
+    const s = stateRef.current;
+
+    s.surges.forEach((surge) => {
+      surge.life -= dt;
+      const progress = 1 - Math.max(0, surge.life / surge.maxLife);
+      const alpha = Math.max(0, surge.life / surge.maxLife);
+      const mainColor = surge.type === "typing" ? "rgba(100,224,255," : "rgba(255,79,193,";
+      const accentColor = surge.type === "typing" ? "rgba(106,255,189," : "rgba(255,209,102,";
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.translate(surge.x, surge.y);
+      ctx.rotate(surge.spin + progress * (surge.major ? 1.8 : 1.1));
+
+      for (let i = 0; i < (surge.major ? 4 : 3); i += 1) {
+        const radius = (surge.major ? 78 : 54) + progress * (surge.major ? 360 : 230) + i * 32;
+        ctx.globalAlpha = alpha * (0.48 - i * 0.09);
+        ctx.strokeStyle = `${i % 2 ? accentColor : mainColor}${0.86 - i * 0.14})`;
+        ctx.lineWidth = surge.major ? 4 - i * 0.4 : 2.7 - i * 0.35;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, Math.PI * (0.08 + i * 0.12), Math.PI * (1.86 - i * 0.07));
+        ctx.stroke();
+      }
+
+      const bladeCount = surge.major ? 12 : 8;
+      for (let i = 0; i < bladeCount; i += 1) {
+        const angle = (Math.PI * 2 * i) / bladeCount;
+        const inner = 30 + progress * 50;
+        const outer = (surge.major ? 250 : 155) + progress * 170;
+        ctx.globalAlpha = alpha * (surge.major ? 0.32 : 0.22);
+        ctx.strokeStyle = `${i % 2 ? accentColor : mainColor}${0.74})`;
+        ctx.lineWidth = i % 3 === 0 ? 2.4 : 1.2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+        ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+
+      if (surge.major) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = alpha * 0.18;
+        ctx.strokeStyle = `${accentColor}0.9)`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(s.width / 2, s.height * 0.5, s.width * (0.2 + progress * 0.34), 48 + progress * 120, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+
+    s.surges = s.surges.filter((surge) => surge.life > 0);
+  };
+
   const drawLaserShots = (ctx, dt) => {
     const s = stateRef.current;
     s.shots.forEach((shot) => {
       shot.life -= dt;
+      const shotColor =
+        shot.color === "cyan"
+          ? "rgba(100,224,255,.95)"
+          : shot.color === "magenta"
+            ? "rgba(255,79,193,.95)"
+            : "rgba(255,138,42,.95)";
+      const glowColor =
+        shot.color === "cyan"
+          ? "rgba(100,224,255,.9)"
+          : shot.color === "magenta"
+            ? "rgba(255,79,193,.9)"
+            : "rgba(255,138,42,.9)";
       ctx.save();
       ctx.globalAlpha = Math.max(0, shot.life / shot.maxLife);
-      ctx.strokeStyle = "rgba(255,138,42,.95)";
+      ctx.strokeStyle = shotColor;
       ctx.lineWidth = 3;
-      ctx.shadowColor = "rgba(255,138,42,.9)";
+      ctx.shadowColor = glowColor;
       ctx.shadowBlur = 18;
       ctx.beginPath();
       ctx.moveTo(shot.x, shot.y);
@@ -1306,18 +1774,18 @@ function App() {
 
     if (!s.running || s.over) return;
 
-    if (now - s.lastEnemy > Math.max(cfg.enemyMinInterval, cfg.enemyBaseInterval - s.breaks * 16)) {
+    if (now - s.lastEnemy > Math.max(cfg.enemyMinInterval, cfg.enemyBaseInterval - s.breaks * 12)) {
       spawnEnemy();
       s.lastEnemy = now;
     }
 
-    if (cfg.asteroid && now - s.lastAsteroid > Math.max(900, 2300 - s.breaks * 10)) {
+    if (cfg.asteroid && now - s.lastAsteroid > Math.max(980, 2400 - s.breaks * 8)) {
       spawnAsteroid();
       s.lastAsteroid = now;
     }
 
     s.enemies.forEach((enemy) => {
-      enemy.depth += enemy.depthSpeed * dt * 2.8;
+      enemy.depth += enemy.depthSpeed * dt * 2.25;
       enemy.lane += enemy.vx * dt + Math.sin(now * 0.0018 * enemy.drift + enemy.phase) * 0.015 * dt;
       enemy.lane = clamp(enemy.lane, -0.95, 0.95);
 
@@ -1342,25 +1810,26 @@ function App() {
     s.enemies = s.enemies.filter((enemy) => !enemy.dead);
 
     s.asteroids.forEach((asteroid) => {
-      asteroid.depth += asteroid.depthSpeed * dt * 2.8;
-      asteroid.lane += asteroid.vx * dt;
-      asteroid.lane = clamp(asteroid.lane, -1, 1);
+      asteroid.depth += asteroid.depthSpeed * dt * 2.65;
+      asteroid.lane += asteroid.vx * dt + Math.sin(now * 0.0012 + asteroid.phase) * asteroid.wobble * dt;
+      asteroid.lane = clamp(asteroid.lane, -1.16, 1.16);
       const projected = projectDepth(asteroid.lane, asteroid.depth);
       asteroid.x = projected.x;
       asteroid.y = projected.y;
       asteroid.scale = projected.scale;
       asteroid.radius = asteroid.baseRadius * projected.scale;
+      asteroid.hitRadius = asteroid.radius * 0.68;
       asteroid.rotation += asteroid.rotationVelocity * dt;
       asteroid.trail.push({ x: asteroid.x, y: asteroid.y });
-      if (asteroid.trail.length > 12) asteroid.trail.shift();
+      if (asteroid.trail.length > 9) asteroid.trail.shift();
 
-      if (asteroid.depth > 0.58 && distance(asteroid.x, asteroid.y, s.pointer.x, s.pointer.y) < asteroid.radius + 10) {
+      if (asteroid.depth > 0.46 && distance(asteroid.x, asteroid.y, s.pointer.x, s.pointer.y) < asteroid.hitRadius + 8) {
         asteroid.dead = true;
         addParticles(s.pointer.x, s.pointer.y, 22, "red");
         registerMiss(16);
       }
 
-      if (asteroid.depth > 1.08 || asteroid.x < -140 || asteroid.x > s.width + 140) {
+      if (asteroid.depth > 1.08 || asteroid.x < -180 || asteroid.x > s.width + 180) {
         asteroid.dead = true;
       }
     });
@@ -1405,6 +1874,7 @@ function App() {
     [...s.asteroids].sort((a, b) => a.depth - b.depth).forEach((asteroid) => drawAsteroid(ctx, asteroid));
     [...s.enemies].sort((a, b) => a.depth - b.depth).forEach((enemy) => drawEnemy(ctx, enemy, now));
 
+    drawMilestoneSurges(ctx, dt);
     drawLaserShots(ctx, dt);
     drawParticles(ctx, dt);
     drawFloaters(ctx, dt);
@@ -1413,7 +1883,8 @@ function App() {
 
     ctx.restore();
 
-    if (s.running && !s.over) {
+    if (s.running && !s.over && now - s.lastHudSync > 120) {
+      s.lastHudSync = now;
       setStats(computeStats());
     }
 
@@ -1426,16 +1897,22 @@ function App() {
 
     const handleResize = () => resizeCanvas();
     const handleMouseMove = (event) => {
-      stateRef.current.pointer.x = event.clientX;
-      stateRef.current.pointer.y = event.clientY;
+      const s = stateRef.current;
+      s.pointer.x = event.clientX;
+      s.pointer.y = clamp(event.clientY, 0, getPlayfieldBottom(s.height) - 8);
     };
     const handleMouseDown = (event) => {
       const s = stateRef.current;
+      if (isEditableTarget(event.target)) return;
       if (!s.running || s.over) return;
+      if (event.clientY > getPlayfieldBottom(s.height)) return;
 
       const enemy = hitTestEnemy(event.clientX, event.clientY);
       if (enemy) lockEnemy(enemy);
-      else showNotice("NO TARGET", "bad");
+      else {
+        playSfx("deny");
+        showNotice("NO TARGET", "bad");
+      }
     };
     const handleKeyDown = (event) => {
       if (isEditableTarget(event.target)) return;
@@ -1514,11 +1991,11 @@ function App() {
           <HudValue label="ACC" value={`${stats.accuracy}%`} />
           <HudValue label="WPM" value={stats.wpm} />
           <HudValue label="LOCK" value={stats.averageLock.toFixed(2)} />
-          <HudValue label="NM BREAK" value={stats.noMissBreaks} tone="bonus" />
-          <HudValue label="NM TYPE" value={stats.noMissKeys} tone="bonus" />
+          <HudValue label="NM BREAK" value={`${stats.noMissBreaks}/${stats.nextNoMissBreakBonus}`} tone="bonus" />
+          <HudValue label="NM TYPE" value={`${stats.noMissKeys}/${stats.nextNoMissKeyBonus}`} tone="bonus" />
         </section>
 
-        <section className="shieldPanel">
+        <section className={`shieldPanel ${stats.special >= 100 ? "overdriveReady" : ""}`}>
           <span className="hudLabel">SHIELD</span>
           <div className="shieldBar">
             <div
@@ -1527,6 +2004,7 @@ function App() {
             />
           </div>
           <span className="hudLabel specialLabel">OVERDRIVE</span>
+          <span className="overdriveValue">{stats.special >= 100 ? "READY / SPACE" : `${stats.special}%`}</span>
           <div className="specialBar">
             <div
               className={`specialFill ${stats.special >= 100 ? "ready" : ""}`}
@@ -1536,11 +2014,17 @@ function App() {
         </section>
       </header>
 
-      <section className={`targetPanel ${target ? "" : "hidden"}`}>
+      <button className={`soundToggle ${soundEnabled ? "on" : "off"}`} type="button" onClick={toggleSound}>
+        SFX {soundEnabled ? "ON" : "OFF"}
+      </button>
+
+      <section className={`targetPanel ${target ? "locked" : "idle"}`}>
         <div className="targetTop">
-          <span className="lockBadge">LOCKED</span>
+          <span className="lockBadge">{target ? "LOCKED" : "NO LOCK"}</span>
           <span className="targetName">
-            {target?.name ?? "TARGET"} / {activeAnswer.length} KEYS / {target?.language?.toUpperCase() ?? "ENGLISH"}
+            {target
+              ? `${target.name} / ${activeAnswer.length} KEYS / ${target.language.toUpperCase()}`
+              : "CLICK A TARGET TO START TYPING"}
           </span>
         </div>
 
@@ -1552,10 +2036,16 @@ function App() {
         )}
 
         <div className="wordDisplay">
-          {target?.language === "english" && <span className="promptGhost">{target.prompt}</span>}
-          <span className="typed">{typed.toUpperCase()}</span>
-          <span className="next">{next.toUpperCase() || " "}</span>
-          <span className="rest">{rest.toUpperCase()}</span>
+          {target ? (
+            <>
+              {target.language === "english" && <span className="promptGhost">{target.prompt}</span>}
+              <span className="typed">{typed.toUpperCase()}</span>
+              <span className="next">{next.toUpperCase() || " "}</span>
+              <span className="rest">{rest.toUpperCase()}</span>
+            </>
+          ) : (
+            <span className="idleText">STANDBY</span>
+          )}
         </div>
 
         <div className="progressRow">
@@ -1628,15 +2118,13 @@ function App() {
             <Metric label="ACCURACY" value={`${result.stats.accuracy}%`} />
             <Metric label="WPM" value={result.stats.wpm} />
             <Metric label="AVG LOCK" value={`${result.stats.averageLock.toFixed(2)}s`} />
+            <Metric label="NO MISS BREAK" value={result.stats.noMissBreaks} />
             <Metric label="NO MISS TYPE" value={result.stats.noMissKeys} />
             <Metric label="BREAKS" value={result.stats.breaks} />
           </div>
 
           <div className="buttonRow">
             <button onClick={() => startTraining(stateRef.current.mode, stateRef.current.language)}>RETRY</button>
-            <button className="orangeButton" onClick={continueTraining}>
-              CONTINUE
-            </button>
             <a className="shareButton" href={getShareUrl(result)} target="_blank" rel="noreferrer">
               POST TO X
             </a>
@@ -1645,8 +2133,9 @@ function App() {
       )}
 
       {notice && <div className={`notice ${notice.type}`}>{notice.text}</div>}
+      {stats.special >= 100 && phase === "game" && <div className="overdriveCallout">OVERDRIVE READY / SPACE</div>}
       {bonusBanner && (
-        <div className={`bonusBanner ${bonusBanner.type}`}>
+        <div className={`bonusBanner ${bonusBanner.type} ${bonusBanner.major ? "major" : ""}`}>
           <span>{bonusBanner.title}</span>
           <strong>+{bonusBanner.amount.toLocaleString()}</strong>
           <em>{bonusBanner.detail}</em>
