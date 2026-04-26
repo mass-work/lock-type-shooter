@@ -108,6 +108,8 @@ const initialStats = {
   averageLock: 0,
   breaks: 0,
   locks: 0,
+  noMissBreaks: 0,
+  noMissKeys: 0,
 };
 
 const RANKS = [
@@ -312,15 +314,16 @@ function getRank(stats) {
 
 function getShareUrl(result) {
   const { rank, stats } = result;
-  const pageUrl = window.location.origin + window.location.pathname;
   const text = [
-    "LOCK TYPE SHOOTER result",
-    `SCORE ${stats.score.toLocaleString()} / RANK ${rank.name} (${rank.label})`,
-    `MAX COMBO ${stats.maxCombo} / ACC ${stats.accuracy}% / WPM ${stats.wpm}`,
-    "#LockTypeShooter",
+    "LOCK TYPE SHOOTER の結果",
+    `スコア：${stats.score.toLocaleString()}点`,
+    `ランク：${rank.name}（${rank.label}）`,
+    `最大コンボ：${stats.maxCombo}`,
+    `正確率：${stats.accuracy}% / WPM：${stats.wpm}`,
+    "#LockTypeShooting",
   ].join("\n");
 
-  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pageUrl)}`;
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
 }
 
 function blurActiveControl() {
@@ -368,6 +371,10 @@ function makeGameState(mode = "normal", language = "english") {
     nextId: 1,
     shake: 0,
     lockTimes: [],
+    noMissBreaks: 0,
+    noMissKeys: 0,
+    nextNoMissBreakBonus: 10,
+    nextNoMissKeyBonus: 75,
   };
 }
 
@@ -383,6 +390,7 @@ function App() {
   const [target, setTarget] = useState(null);
   const [notice, setNotice] = useState(null);
   const [comboPop, setComboPop] = useState(null);
+  const [bonusBanner, setBonusBanner] = useState(null);
   const [damageFlash, setDamageFlash] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -392,6 +400,12 @@ function App() {
     setNotice({ text, type, id: Math.random() });
     window.clearTimeout(showNotice.timer);
     showNotice.timer = window.setTimeout(() => setNotice(null), 760);
+  };
+
+  const showBonus = (title, detail, amount, type = "break") => {
+    setBonusBanner({ title, detail, amount, type, id: Math.random() });
+    window.clearTimeout(showBonus.timer);
+    showBonus.timer = window.setTimeout(() => setBonusBanner(null), 1500);
   };
 
   const triggerDamage = () => {
@@ -419,6 +433,8 @@ function App() {
       averageLock,
       breaks: s.breaks,
       locks: s.locks,
+      noMissBreaks: s.noMissBreaks,
+      noMissKeys: s.noMissKeys,
     };
   };
 
@@ -668,6 +684,10 @@ function App() {
 
     s.totalKeys += 1;
     s.combo = 0;
+    s.noMissBreaks = 0;
+    s.noMissKeys = 0;
+    s.nextNoMissBreakBonus = 10;
+    s.nextNoMissKeyBonus = 75;
     s.hp = clamp(s.hp - damage, 0, 100);
     s.shake = 12;
 
@@ -694,7 +714,22 @@ function App() {
     s.combo += 1;
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.breaks += 1;
+    s.noMissBreaks += 1;
     s.special = clamp(s.special + 16 + Math.min(20, s.combo * 2), 0, 100);
+
+    if (s.noMissBreaks >= s.nextNoMissBreakBonus) {
+      const tier = Math.floor(s.noMissBreaks / 10);
+      const streakBonus = 1200 + tier * 420;
+      s.score += streakBonus;
+      s.special = clamp(s.special + 34, 0, 100);
+      s.hp = clamp(s.hp + 10, 0, 100);
+      s.shake = Math.max(s.shake, 28);
+      addParticles(enemy.x, enemy.y, 88, "magenta");
+      addParticles(s.pointer.x, s.pointer.y, 54, "cyan");
+      addFloater(`NO MISS ${s.noMissBreaks} BREAKS +${streakBonus}`, enemy.x, enemy.y - 96, "magenta");
+      showBonus(`NO MISS ${s.noMissBreaks} BREAKS`, "連続撃破ボーナス", streakBonus, "break");
+      s.nextNoMissBreakBonus += 10;
+    }
     s.lockedId = null;
     s.typedText = "";
 
@@ -744,9 +779,23 @@ function App() {
 
     if (matches.length > 0) {
       s.correctKeys += 1;
+      s.noMissKeys += 1;
       s.typedText = nextText;
       s.special = clamp(s.special + 0.85, 0, 100);
       s.score += 6 + Math.min(34, s.combo * 1.4);
+
+      if (s.noMissKeys >= s.nextNoMissKeyBonus) {
+        const tier = Math.floor(s.noMissKeys / 75);
+        const typingBonus = 850 + tier * 260;
+        s.score += typingBonus;
+        s.special = clamp(s.special + 24, 0, 100);
+        s.hp = clamp(s.hp + 6, 0, 100);
+        s.shake = Math.max(s.shake, 18);
+        addParticles(enemy.x, enemy.y, 42, "cyan");
+        addFloater(`CLEAN TYPE ${s.noMissKeys} +${typingBonus}`, enemy.x, enemy.y - 76, "cyan");
+        showBonus(`CLEAN TYPE ${s.noMissKeys}`, "ノーミスタイピングボーナス", typingBonus, "typing");
+        s.nextNoMissKeyBonus += 75;
+      }
       const currentAnswer = matches.find((option) => option.length >= nextText.length) ?? matches[0];
       enemy.hpRate = 1 - nextText.length / currentAnswer.length;
       enemy.shake = 4;
@@ -1215,7 +1264,9 @@ function App() {
           ? "rgba(255,138,42,.96)"
           : particle.color === "red"
             ? "rgba(255,59,92,.96)"
-            : "rgba(0,242,254,.96)";
+            : particle.color === "magenta"
+              ? "rgba(255,63,183,.96)"
+              : "rgba(0,242,254,.96)";
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2);
       ctx.fill();
@@ -1234,7 +1285,12 @@ function App() {
 
       ctx.save();
       ctx.globalAlpha = Math.max(0, floater.life / floater.maxLife);
-      ctx.fillStyle = floater.color === "orange" ? "rgba(255,138,42,.96)" : "rgba(0,242,254,.96)";
+      ctx.fillStyle =
+        floater.color === "orange"
+          ? "rgba(255,138,42,.96)"
+          : floater.color === "magenta"
+            ? "rgba(255,63,183,.96)"
+            : "rgba(0,242,254,.96)";
       ctx.font = "900 18px ui-monospace, SFMono-Regular, Consolas, monospace";
       ctx.textAlign = "center";
       ctx.fillText(floater.text, floater.x, floater.y);
@@ -1458,6 +1514,8 @@ function App() {
           <HudValue label="ACC" value={`${stats.accuracy}%`} />
           <HudValue label="WPM" value={stats.wpm} />
           <HudValue label="LOCK" value={stats.averageLock.toFixed(2)} />
+          <HudValue label="NM BREAK" value={stats.noMissBreaks} tone="bonus" />
+          <HudValue label="NM TYPE" value={stats.noMissKeys} tone="bonus" />
         </section>
 
         <section className="shieldPanel">
@@ -1570,6 +1628,7 @@ function App() {
             <Metric label="ACCURACY" value={`${result.stats.accuracy}%`} />
             <Metric label="WPM" value={result.stats.wpm} />
             <Metric label="AVG LOCK" value={`${result.stats.averageLock.toFixed(2)}s`} />
+            <Metric label="NO MISS TYPE" value={result.stats.noMissKeys} />
             <Metric label="BREAKS" value={result.stats.breaks} />
           </div>
 
@@ -1586,6 +1645,13 @@ function App() {
       )}
 
       {notice && <div className={`notice ${notice.type}`}>{notice.text}</div>}
+      {bonusBanner && (
+        <div className={`bonusBanner ${bonusBanner.type}`}>
+          <span>{bonusBanner.title}</span>
+          <strong>+{bonusBanner.amount.toLocaleString()}</strong>
+          <em>{bonusBanner.detail}</em>
+        </div>
+      )}
       {damageFlash && <div className="damageFlash" />}
       {comboPop && <div className="comboPop">{comboPop}</div>}
       <div className="modeTag">

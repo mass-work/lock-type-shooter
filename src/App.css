@@ -968,3 +968,127 @@ button:hover,
     min-width: 0;
   }
 }
+
+
+.hudItem.bonus {
+  border-left-color: var(--magenta);
+  background:
+    linear-gradient(110deg, rgba(255, 63, 183, 0.14), transparent 30%, rgba(115, 237, 255, 0.08)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.065), transparent 42%),
+    var(--panel);
+}
+
+.hudItem.bonus strong {
+  color: var(--hot);
+  text-shadow:
+    0 0 12px rgba(255, 63, 183, 0.46),
+    0 0 24px rgba(255, 209, 102, 0.22);
+}
+
+.bonusBanner {
+  position: fixed;
+  z-index: 72;
+  top: 45%;
+  left: 50%;
+  width: min(660px, calc(100vw - 60px));
+  padding: 22px 26px 24px;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(115, 237, 255, 0.14), transparent 24%, transparent 76%, rgba(255, 63, 183, 0.18)),
+    radial-gradient(circle at 50% 50%, rgba(255, 209, 102, 0.2), transparent 50%),
+    rgba(3, 7, 18, 0.78);
+  border: 1px solid rgba(255, 209, 102, 0.52);
+  border-top: 3px solid var(--hot);
+  border-bottom: 3px solid var(--magenta);
+  clip-path: polygon(34px 0, calc(100% - 34px) 0, 100% 30px, calc(100% - 16px) 100%, 16px 100%, 0 30px);
+  box-shadow:
+    0 0 44px rgba(255, 209, 102, 0.3),
+    0 0 92px rgba(255, 63, 183, 0.18),
+    inset 0 0 34px rgba(255, 255, 255, 0.05);
+  animation: bonusBannerIn 1.45s ease-out forwards;
+}
+
+.bonusBanner::before,
+.bonusBanner::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 130vw;
+  height: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--hot), var(--magenta), transparent);
+  box-shadow: 0 0 22px rgba(255, 209, 102, 0.7);
+}
+
+.bonusBanner::before {
+  top: 10px;
+}
+
+.bonusBanner::after {
+  bottom: 10px;
+}
+
+.bonusBanner span {
+  display: block;
+  color: var(--hot);
+  font-size: clamp(24px, 4.5vw, 52px);
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-shadow:
+    2px 0 0 rgba(255, 63, 183, 0.42),
+    -2px 0 0 rgba(115, 237, 255, 0.38),
+    0 0 30px rgba(255, 209, 102, 0.48);
+}
+
+.bonusBanner strong {
+  display: block;
+  margin-top: 8px;
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: clamp(30px, 5.2vw, 62px);
+  line-height: 1;
+  text-shadow:
+    0 0 18px rgba(255, 255, 255, 0.4),
+    0 0 32px rgba(115, 237, 255, 0.38);
+}
+
+.bonusBanner em {
+  display: block;
+  margin-top: 10px;
+  color: rgba(236, 251, 255, 0.72);
+  font-style: normal;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.bonusBanner.typing {
+  border-top-color: var(--cyan);
+  border-bottom-color: var(--green);
+}
+
+@keyframes bonusBannerIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.82);
+    filter: blur(8px);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+    filter: blur(0);
+  }
+  28% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
