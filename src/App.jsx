@@ -468,11 +468,11 @@ function App() {
 
   const projectDepth = (lane, depth, bob = 0) => {
     const s = stateRef.current;
-    const horizon = s.height * 0.38;
-    const floor = s.height * 0.86;
-    const eased = depth ** 1.85;
-    const scale = 0.34 + depth * 1.22;
-    const spread = s.width * (0.08 + depth * 0.42);
+    const horizon = s.height * 0.34;
+    const floor = s.height * 0.84;
+    const eased = depth ** 1.58;
+    const scale = 0.38 + depth * 1.12;
+    const spread = s.width * (0.2 + depth * 0.32);
 
     return {
       x: s.width / 2 + lane * spread,
@@ -481,13 +481,19 @@ function App() {
     };
   };
 
+  const pickLane = (wide = false) => {
+    const lanes = wide ? [-0.95, -0.68, -0.38, 0.38, 0.68, 0.95] : [-0.82, -0.52, -0.24, 0.24, 0.52, 0.82];
+    const base = lanes[Math.floor(Math.random() * lanes.length)];
+    return clamp(base + random(-0.08, 0.08), -0.98, 0.98);
+  };
+
   const spawnEnemy = () => {
     const s = stateRef.current;
     const cfg = MODE_CONFIG[s.mode];
     if (s.enemies.length >= cfg.maxEnemies) return;
 
     const word = createWordEntry(s.language, s.breaks);
-    const lane = random(-0.86, 0.86);
+    const lane = pickLane(false);
     const depth = random(0.02, 0.14);
     const projected = projectDepth(lane, depth);
     const speed = random(0.065, 0.105) + Math.min(0.045, s.breaks * 0.0018);
@@ -521,7 +527,7 @@ function App() {
     if (!cfg.asteroid || s.asteroids.length >= cfg.maxAsteroids) return;
 
     const baseRadius = random(30, 58);
-    const lane = random(-0.92, 0.92);
+    const lane = pickLane(true);
     const depth = random(0.04, 0.18);
     const projected = projectDepth(lane, depth);
     s.asteroids.push({
@@ -798,14 +804,44 @@ function App() {
     const pulse = Math.sin(now * 0.006 + enemy.phase) * 0.5 + 0.5;
     const x = enemy.x + (enemy.shake ? random(-enemy.shake, enemy.shake) : 0);
     const y = enemy.y + (enemy.shake ? random(-enemy.shake, enemy.shake) : 0);
+    const glow = locked ? "rgba(255,79,193,.62)" : hovered ? "rgba(100,224,255,.5)" : "rgba(255,79,193,.28)";
 
-    drawShip(ctx, x, y, Math.PI, false, enemy.scale);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(enemy.scale, enemy.scale);
+    ctx.globalAlpha = 0.42 + pulse * 0.22;
+    ctx.strokeStyle = glow;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = locked ? "rgba(255,79,193,.95)" : "rgba(100,224,255,.65)";
+    ctx.shadowBlur = locked ? 28 : 18;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, enemy.baseRadius + 34, enemy.baseRadius + 18, now * 0.001 + enemy.phase, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, enemy.baseRadius + 10 + pulse * 8, 0, Math.PI * 2);
+    ctx.strokeStyle = locked ? "rgba(255,177,59,.7)" : "rgba(100,224,255,.38)";
+    ctx.stroke();
+    ctx.restore();
 
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(enemy.scale, enemy.scale);
 
-    ctx.strokeStyle = locked ? "rgba(255,138,42,.98)" : hovered ? "rgba(0,242,254,.98)" : "rgba(0,242,254,.55)";
+    const coreGradient = ctx.createRadialGradient(0, 0, 1, 0, 0, enemy.baseRadius + 26);
+    coreGradient.addColorStop(0, locked ? "rgba(255,255,255,.95)" : "rgba(255,140,255,.92)");
+    coreGradient.addColorStop(0.22, locked ? "rgba(255,177,59,.92)" : "rgba(255,79,193,.78)");
+    coreGradient.addColorStop(0.58, "rgba(100,224,255,.26)");
+    coreGradient.addColorStop(1, "rgba(100,224,255,0)");
+
+    ctx.fillStyle = coreGradient;
+    ctx.shadowColor = locked ? "rgba(255,177,59,.95)" : "rgba(255,79,193,.75)";
+    ctx.shadowBlur = locked ? 30 : 22;
+    ctx.beginPath();
+    ctx.arc(0, 0, enemy.baseRadius + 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = locked ? "rgba(255,138,42,.98)" : hovered ? "rgba(100,224,255,.98)" : "rgba(100,224,255,.6)";
     ctx.lineWidth = locked ? 2.6 : 1.45;
 
     const size = enemy.baseRadius + 16 + pulse * 3;
@@ -822,6 +858,47 @@ function App() {
       ctx.lineTo(sx * (size - corner), sy * size);
       ctx.stroke();
     });
+
+    ctx.save();
+    ctx.rotate(now * 0.0018 + enemy.phase);
+    ctx.strokeStyle = locked ? "rgba(255,177,59,.82)" : "rgba(255,79,193,.58)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, enemy.baseRadius + 24, Math.PI * 0.08, Math.PI * 0.82);
+    ctx.arc(0, 0, enemy.baseRadius + 24, Math.PI * 1.08, Math.PI * 1.82);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(100,224,255,.55)";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, enemy.baseRadius + 32, enemy.baseRadius + 12, Math.PI * 0.18, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.rotate(-now * 0.0024 + enemy.phase);
+    [
+      [0, -1],
+      [0.86, 0.5],
+      [-0.86, 0.5],
+    ].forEach(([dx, dy]) => {
+      const px = dx * (enemy.baseRadius + 18);
+      const py = dy * (enemy.baseRadius + 18);
+      ctx.fillStyle = locked ? "rgba(255,177,59,.95)" : "rgba(100,224,255,.88)";
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = 12;
+      ctx.fillRect(px - 5, py - 5, 10, 10);
+    });
+    ctx.restore();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(3, 8, 18, .78)";
+    ctx.strokeStyle = "rgba(236,251,255,.42)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(0, 0, enemy.baseRadius * 0.44, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
 
     if (locked) {
       const activeAnswer = enemy.answerOptions.find((option) => option.startsWith(s.typedText)) ?? enemy.answerOptions[0];
@@ -895,20 +972,27 @@ function App() {
 
   const drawArenaGrid = (ctx, now) => {
     const s = stateRef.current;
-    const horizon = s.height * 0.38;
-    const floor = s.height * 0.88;
+    const horizon = s.height * 0.34;
+    const floor = s.height * 0.86;
     const centerX = s.width / 2;
     const pulse = Math.sin(now * 0.0015) * 0.5 + 0.5;
 
     ctx.save();
-    ctx.globalAlpha = 0.8;
-    ctx.strokeStyle = "rgba(100,224,255,.18)";
+    const tunnelGradient = ctx.createRadialGradient(centerX, horizon + 48, 20, centerX, horizon + 48, s.width * 0.42);
+    tunnelGradient.addColorStop(0, "rgba(255,79,193,.2)");
+    tunnelGradient.addColorStop(0.42, "rgba(100,224,255,.08)");
+    tunnelGradient.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = tunnelGradient;
+    ctx.fillRect(0, 0, s.width, s.height);
+
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = "rgba(100,224,255,.2)";
     ctx.lineWidth = 1;
 
-    for (let i = -9; i <= 9; i += 1) {
-      const endX = centerX + i * s.width * 0.072;
+    for (let i = -10; i <= 10; i += 1) {
+      const endX = centerX + i * s.width * 0.065;
       ctx.beginPath();
-      ctx.moveTo(centerX + i * 5, horizon);
+      ctx.moveTo(centerX + i * 16, horizon);
       ctx.lineTo(endX, floor);
       ctx.stroke();
     }
@@ -921,6 +1005,32 @@ function App() {
       ctx.beginPath();
       ctx.moveTo(centerX - half, y);
       ctx.lineTo(centerX + half, y);
+      ctx.stroke();
+    }
+
+    [-0.82, -0.52, -0.24, 0.24, 0.52, 0.82].forEach((lane, index) => {
+      const start = projectDepth(lane, 0.02);
+      const end = projectDepth(lane, 1);
+      ctx.globalAlpha = 0.16 + (index % 2) * 0.08;
+      ctx.strokeStyle = index % 2 ? "rgba(255,79,193,.34)" : "rgba(100,224,255,.34)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+    });
+
+    for (let i = 0; i < 14; i += 1) {
+      const side = i % 2 ? 1 : -1;
+      const t = ((now * 0.00023 + i * 0.13) % 1);
+      const y = horizon + (floor - horizon) * t;
+      const x = centerX + side * (s.width * (0.24 + t * 0.28));
+      ctx.globalAlpha = 0.14 + t * 0.38;
+      ctx.strokeStyle = i % 3 ? "rgba(100,224,255,.58)" : "rgba(255,79,193,.5)";
+      ctx.lineWidth = 2 + t * 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - side * (60 + t * 160), y + 18 + t * 36);
       ctx.stroke();
     }
 
