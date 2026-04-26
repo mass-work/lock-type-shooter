@@ -111,11 +111,11 @@ const initialStats = {
 };
 
 const RANKS = [
-  { name: "S+", threshold: 12000, label: "ACE VECTOR" },
-  { name: "S", threshold: 9000, label: "ZERO MISSILE" },
-  { name: "A", threshold: 6200, label: "CLEAN BREAKER" },
-  { name: "B", threshold: 3600, label: "FIELD LOCKER" },
-  { name: "C", threshold: 1600, label: "ROOKIE PILOT" },
+  { name: "S+", threshold: 26000, label: "ACE VECTOR" },
+  { name: "S", threshold: 19000, label: "ZERO MISSILE" },
+  { name: "A", threshold: 12500, label: "CLEAN BREAKER" },
+  { name: "B", threshold: 7600, label: "FIELD LOCKER" },
+  { name: "C", threshold: 3200, label: "ROOKIE PILOT" },
   { name: "D", threshold: 0, label: "BOOT SEQUENCE" },
 ];
 
@@ -301,8 +301,11 @@ function createWordEntry(language, breaks = 0) {
 function getRank(stats) {
   if (stats.breaks === 0) return RANKS[RANKS.length - 1];
 
-  const rating =
-    stats.score + stats.accuracy * 18 + stats.wpm * 14 + stats.maxCombo * 220 + stats.breaks * 80;
+  const accuracyBonus = Math.max(0, stats.accuracy - 80) * 45;
+  const speedBonus = Math.min(2600, stats.wpm * 18);
+  const comboBonus = Math.min(5200, stats.maxCombo * 155);
+  const clearBonus = Math.min(3600, stats.breaks * 55);
+  const rating = stats.score + accuracyBonus + speedBonus + comboBonus + clearBonus;
 
   return RANKS.find((rank) => rating >= rank.threshold) ?? RANKS[RANKS.length - 1];
 }
@@ -311,10 +314,10 @@ function getShareUrl(result) {
   const { rank, stats } = result;
   const pageUrl = window.location.origin + window.location.pathname;
   const text = [
-    "LOCK / TYPE / BREAK result",
+    "LOCK TYPE SHOOTER result",
     `SCORE ${stats.score.toLocaleString()} / RANK ${rank.name} (${rank.label})`,
     `MAX COMBO ${stats.maxCombo} / ACC ${stats.accuracy}% / WPM ${stats.wpm}`,
-    "#LockTypeBreak",
+    "#LockTypeShooter",
   ].join("\n");
 
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pageUrl)}`;
@@ -685,7 +688,7 @@ function App() {
   const breakEnemy = (enemy) => {
     const s = stateRef.current;
     const bestAnswerLength = Math.min(...enemy.answerOptions.map((option) => option.length));
-    const bonus = 180 + bestAnswerLength * 12 + s.combo * 45;
+    const bonus = 110 + bestAnswerLength * 9 + Math.min(360, s.combo * 24);
 
     s.score += bonus;
     s.combo += 1;
@@ -710,7 +713,7 @@ function App() {
     s.enemies = s.enemies.filter((item) => item.id !== enemy.id);
 
     if (s.combo > 0 && s.combo % 5 === 0) {
-      const chainBonus = 600 + s.combo * 80;
+      const chainBonus = 240 + s.combo * 36;
       s.score += chainBonus;
       s.special = clamp(s.special + 18, 0, 100);
       addFloater(`CHAIN BONUS +${chainBonus}`, enemy.x, enemy.y - 72, "orange");
@@ -743,7 +746,7 @@ function App() {
       s.correctKeys += 1;
       s.typedText = nextText;
       s.special = clamp(s.special + 0.85, 0, 100);
-      s.score += 12 + Math.min(80, s.combo * 3);
+      s.score += 6 + Math.min(34, s.combo * 1.4);
       const currentAnswer = matches.find((option) => option.length >= nextText.length) ?? matches[0];
       enemy.hpRate = 1 - nextText.length / currentAnswer.length;
       enemy.shake = 4;
@@ -777,10 +780,10 @@ function App() {
 
     const targetScore = targets.reduce((sum, enemy) => {
       const bestAnswerLength = Math.min(...enemy.answerOptions.map((option) => option.length));
-      return sum + 420 + bestAnswerLength * 32;
+      return sum + 220 + bestAnswerLength * 16;
     }, 0);
-    const hazardScore = hazards.length * 220;
-    const bonus = targetScore + hazardScore + Math.max(0, s.combo) * 160;
+    const hazardScore = hazards.length * 110;
+    const bonus = targetScore + hazardScore + Math.max(0, s.combo) * 70;
 
     [...targets, ...hazards].forEach((item) => {
       addParticles(item.x, item.y, 48, item.answerOptions ? "orange" : "red");
@@ -1443,7 +1446,7 @@ function App() {
 
       <header className="hud">
         <section className="logoPanel">
-          <div className="logoMain">LOCK / TYPE / BREAK</div>
+          <div className="logoMain">LOCK TYPE SHOOTER</div>
           <div className="logoSub">
             {LANGUAGE_CONFIG[language].shortLabel} / DESKTOP SHOOTING TRAINER
           </div>
@@ -1513,7 +1516,7 @@ function App() {
             <br />
             TYPE
             <br />
-            BREAK
+            SHOOTER
           </h1>
           <p className="description">
             上から接近するターゲットをマウスやトラックボールで捕捉し、クリックでロック。

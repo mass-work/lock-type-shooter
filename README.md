@@ -1,14 +1,15 @@
-# LOCK / TYPE / BREAK
+# LOCK TYPE SHOOTER
 
-マウス / トラックボールのポインティング操作と、キーボードタイピングを同時に練習するシューティングゲームです。
+LOCK TYPE SHOOTER is a browser-based pointing and typing trainer built with Vite and React.
+
+Aim with a mouse or trackball, click to lock a target, then type the displayed word to shoot it down. The game supports English typing and Japanese romaji typing, including multiple valid romaji patterns.
 
 ## Features
 
-- 上から接近する敵をクリックしてロック
-- ロックした敵の単語をキーボードで入力して撃破
-- SCORE / COMBO / ACC / WPM / 平均ロック時間を表示
-- NORMAL MODE / PRACTICE MODE
-- GitHub Pages 配信用の Vite + React 構成
+- Lock-on pointing practice with mouse or trackball
+- English and Japanese romaji typing modes
+- Asteroids, combo scoring, rank results, and overdrive clears
+- GitHub Pages deployment via GitHub Actions
 - MIT License
 
 ## Development
@@ -24,30 +25,14 @@ npm run dev
 npm run build
 ```
 
-## GitHub Pages deployment
+## GitHub Pages
 
-### 1. `package.json` の `homepage` を変更
+The repository includes a GitHub Actions workflow that builds and deploys the app when `main` is pushed.
 
-```json
-"homepage": "https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPOSITORY_NAME/"
-```
-
-### 2. Project Pages の場合は base path を指定して deploy
+For Project Pages, the workflow sets:
 
 ```bash
-VITE_BASE_PATH=/YOUR_REPOSITORY_NAME/ npm run deploy
-```
-
-Windows PowerShell の場合:
-
-```powershell
-$env:VITE_BASE_PATH="/YOUR_REPOSITORY_NAME/"; npm run deploy
-```
-
-カスタムドメインや User Pages 直下に置く場合は、通常どおり:
-
-```bash
-npm run deploy
+VITE_BASE_PATH=/${{ github.event.repository.name }}/
 ```
 
 ## License
