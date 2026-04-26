@@ -79,7 +79,8 @@ const LANGUAGE_CONFIG = {
 const MODE_CONFIG = {
   normal: {
     label: "NORMAL MODE",
-    maxEnemies: 5,
+    startEnemies: 1,
+    maxEnemies: 4,
     maxAsteroids: 6,
     asteroid: true,
     enemyBaseInterval: 1420,
@@ -87,6 +88,7 @@ const MODE_CONFIG = {
   },
   practice: {
     label: "PRACTICE MODE",
+    startEnemies: 1,
     maxEnemies: 3,
     maxAsteroids: 2,
     asteroid: true,
@@ -513,10 +515,15 @@ function App() {
     return fallback;
   };
 
-  const spawnEnemy = () => {
+  const getActiveEnemyLimit = () => {
     const s = stateRef.current;
     const cfg = MODE_CONFIG[s.mode];
-    if (s.enemies.length >= cfg.maxEnemies) return;
+    return Math.min(cfg.maxEnemies, cfg.startEnemies + Math.floor(s.breaks / 4));
+  };
+
+  const spawnEnemy = () => {
+    const s = stateRef.current;
+    if (s.enemies.length >= getActiveEnemyLimit()) return;
 
     const word = createWordEntry(s.language, s.breaks);
     const placement = findSpawnPlacement(false, 0.02, 0.14);
@@ -809,12 +816,10 @@ function App() {
     s.over = false;
     s.startAt = performance.now();
     s.lastFrame = performance.now();
+    s.lastEnemy = performance.now();
+    s.lastAsteroid = performance.now();
 
-    for (let i = 0; i < 4; i += 1) spawnEnemy();
-    if (MODE_CONFIG[nextMode].asteroid) {
-      for (let i = 0; i < 2; i += 1) spawnAsteroid();
-      s.lastAsteroid = performance.now();
-    }
+    spawnEnemy();
 
     setPhase("game");
     setResult(null);
@@ -829,8 +834,9 @@ function App() {
     s.over = false;
     s.running = true;
     s.hp = Math.max(s.hp, 40);
-    for (let i = 0; i < 3; i += 1) spawnEnemy();
-    if (MODE_CONFIG[s.mode].asteroid) spawnAsteroid();
+    spawnEnemy();
+    s.lastEnemy = performance.now();
+    s.lastAsteroid = performance.now();
     setPhase("game");
     setResult(null);
     syncHud();
@@ -1424,8 +1430,15 @@ function App() {
   return (
     <main className="gameShell">
       <canvas ref={canvasRef} className="gameCanvas" />
+      <div className="cockpitFrame" aria-hidden="true">
+        <span className="corner topLeft" />
+        <span className="corner topRight" />
+        <span className="corner bottomLeft" />
+        <span className="corner bottomRight" />
+        <span className="scanLine" />
+      </div>
       <div className="waveBanner">
-        <span>{phase === "game" ? "ENEMY WAVE" : "SIMULATION READY"}</span>
+        <span>{phase === "game" ? `ACTIVE LIMIT ${getActiveEnemyLimit()}` : "SIMULATION READY"}</span>
       </div>
 
       <header className="hud">

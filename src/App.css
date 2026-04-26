@@ -1,18 +1,20 @@
 :root {
-  --bg: #05070d;
-  --panel: rgba(8, 14, 26, 0.76);
-  --panel-strong: rgba(5, 9, 18, 0.94);
-  --line: rgba(100, 224, 255, 0.38);
+  --bg: #030612;
+  --panel: rgba(6, 12, 26, 0.7);
+  --panel-strong: rgba(4, 8, 20, 0.94);
+  --line: rgba(115, 237, 255, 0.42);
   --text: #ecfbff;
   --muted: rgba(236, 251, 255, 0.64);
   --dim: rgba(236, 251, 255, 0.2);
-  --cyan: #64e0ff;
-  --blue: #7aa7ff;
-  --orange: #ffb13b;
-  --red: #ff416d;
-  --green: #60f5b2;
-  --violet: #ba7cff;
-  --magenta: #ff4fc1;
+  --cyan: #73edff;
+  --blue: #7ca6ff;
+  --orange: #ffd166;
+  --red: #ff3d71;
+  --green: #6affbd;
+  --violet: #a46dff;
+  --magenta: #ff3fb7;
+  --glass: rgba(4, 8, 20, 0.62);
+  --hot: #fff0a8;
 }
 
 * {
@@ -40,13 +42,11 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(115deg, rgba(255, 79, 193, 0.16), transparent 24%),
-    radial-gradient(circle at 50% 38%, rgba(255, 79, 193, 0.13), transparent 34%),
-    radial-gradient(ellipse at 50% 34%, rgba(100, 224, 255, 0.12), transparent 22%),
-    radial-gradient(circle at 18% 18%, rgba(100, 224, 255, 0.18), transparent 30%),
-    radial-gradient(circle at 82% 24%, rgba(255, 177, 59, 0.12), transparent 28%),
-    radial-gradient(circle at 50% 110%, rgba(96, 245, 178, 0.12), transparent 38%),
-    linear-gradient(180deg, #10162c, #050711 54%, #02040a);
+    radial-gradient(ellipse at 50% 36%, rgba(115, 237, 255, 0.15), transparent 24%),
+    radial-gradient(circle at 50% 42%, rgba(255, 63, 183, 0.16), transparent 36%),
+    radial-gradient(circle at 12% 18%, rgba(115, 237, 255, 0.14), transparent 26%),
+    radial-gradient(circle at 88% 22%, rgba(255, 209, 102, 0.12), transparent 28%),
+    linear-gradient(180deg, #121933, #050817 56%, #02040b);
 }
 
 body::after {
@@ -55,12 +55,12 @@ body::after {
   inset: 0;
   z-index: 1000;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: 0.34;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    repeating-linear-gradient(90deg, transparent 0 80px, rgba(100, 224, 255, 0.03) 80px 82px),
-    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.09) 50%);
+    linear-gradient(rgba(255, 255, 255, 0.026) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px),
+    repeating-linear-gradient(90deg, transparent 0 96px, rgba(115, 237, 255, 0.035) 96px 98px),
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
   background-size:
     42px 42px,
     42px 42px,
@@ -109,21 +109,85 @@ body::after {
   cursor: crosshair;
 }
 
+.cockpitFrame {
+  position: fixed;
+  inset: 12px;
+  z-index: 18;
+  pointer-events: none;
+  border: 1px solid rgba(115, 237, 255, 0.14);
+  box-shadow:
+    inset 0 0 40px rgba(115, 237, 255, 0.05),
+    inset 0 0 120px rgba(255, 63, 183, 0.04);
+  clip-path: polygon(42px 0, calc(100% - 42px) 0, 100% 42px, 100% calc(100% - 42px), calc(100% - 42px) 100%, 42px 100%, 0 calc(100% - 42px), 0 42px);
+}
+
+.corner {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border-color: rgba(115, 237, 255, 0.62);
+  filter: drop-shadow(0 0 12px rgba(115, 237, 255, 0.34));
+}
+
+.topLeft {
+  top: 12px;
+  left: 12px;
+  border-top: 3px solid;
+  border-left: 3px solid;
+}
+
+.topRight {
+  top: 12px;
+  right: 12px;
+  border-top: 3px solid;
+  border-right: 3px solid;
+}
+
+.bottomLeft {
+  bottom: 12px;
+  left: 12px;
+  border-bottom: 3px solid;
+  border-left: 3px solid;
+}
+
+.bottomRight {
+  right: 12px;
+  bottom: 12px;
+  border-right: 3px solid;
+  border-bottom: 3px solid;
+}
+
+.scanLine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(115, 237, 255, 0.12) 50%, transparent 100%);
+  animation: scanSweep 4.8s linear infinite;
+}
+
+@keyframes scanSweep {
+  from {
+    transform: translateY(-105%);
+  }
+  to {
+    transform: translateY(105%);
+  }
+}
+
 .waveBanner {
   position: fixed;
   z-index: 19;
   top: 0;
   left: 50%;
-  width: min(460px, 58vw);
-  height: 48px;
+  width: min(420px, 54vw);
+  height: 44px;
   transform: translateX(-50%);
   display: grid;
   place-items: center;
   pointer-events: none;
   background:
-    linear-gradient(90deg, transparent, rgba(100, 224, 255, 0.22), rgba(255, 79, 193, 0.16), transparent),
-    rgba(5, 9, 18, 0.52);
-  border-bottom: 1px solid rgba(100, 224, 255, 0.36);
+    linear-gradient(90deg, transparent, rgba(115, 237, 255, 0.22), rgba(255, 63, 183, 0.18), transparent),
+    rgba(4, 8, 20, 0.58);
+  border-bottom: 1px solid rgba(115, 237, 255, 0.4);
   clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%);
   text-shadow:
     0 0 12px rgba(100, 224, 255, 0.52),
@@ -131,17 +195,17 @@ body::after {
 }
 
 .waveBanner span {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 1000;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.18em;
 }
 
 .hud {
   position: fixed;
   z-index: 20;
-  top: 16px;
-  left: 18px;
-  right: 18px;
+  top: 18px;
+  left: 24px;
+  right: 24px;
   display: flex;
   gap: 8px;
   align-items: stretch;
@@ -149,22 +213,24 @@ body::after {
 }
 
 .logoPanel {
-  min-width: 288px;
-  padding: 11px 20px 10px 15px;
+  min-width: 300px;
+  padding: 12px 22px 10px 16px;
   background:
-    linear-gradient(90deg, rgba(100, 224, 255, 0.16), rgba(255, 177, 59, 0.08)),
-    rgba(5, 9, 18, 0.72);
-  border: 1px solid var(--line);
-  border-left: 4px solid var(--cyan);
+    linear-gradient(90deg, rgba(115, 237, 255, 0.16), rgba(255, 63, 183, 0.1)),
+    var(--glass);
+  border: 1px solid rgba(115, 237, 255, 0.32);
+  border-left: 5px solid var(--cyan);
   clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%);
   backdrop-filter: blur(14px);
-  box-shadow: 0 0 44px rgba(100, 224, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 44px rgba(115, 237, 255, 0.13);
 }
 
 .logoMain {
   font-size: 13px;
   font-weight: 950;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.2em;
 }
 
 .logoSub {
@@ -180,13 +246,13 @@ body::after {
 }
 
 .hudItem {
-  min-width: 96px;
-  padding: 10px 14px 9px;
+  min-width: 100px;
+  padding: 10px 15px 9px;
   background:
-    linear-gradient(110deg, rgba(100, 224, 255, 0.1), transparent 28%, rgba(255, 79, 193, 0.08)),
+    linear-gradient(110deg, rgba(115, 237, 255, 0.12), transparent 28%, rgba(255, 63, 183, 0.1)),
     linear-gradient(180deg, rgba(255, 255, 255, 0.065), transparent 42%),
     var(--panel);
-  border: 1px solid rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(115, 237, 255, 0.2);
   border-left: 3px solid var(--cyan);
   clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
   backdrop-filter: blur(14px);
@@ -221,17 +287,17 @@ body::after {
 .hudItem strong {
   display: block;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 22px;
+  font-size: 23px;
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
 }
 
 .shieldPanel {
-  width: 210px;
+  width: 228px;
   margin-left: auto;
   padding: 10px 14px;
   background:
-    linear-gradient(135deg, rgba(255, 177, 59, 0.1), transparent 42%),
+    linear-gradient(135deg, rgba(255, 209, 102, 0.12), transparent 42%),
     var(--panel);
   border: 1px solid var(--line);
   backdrop-filter: blur(14px);
@@ -300,24 +366,24 @@ body::after {
 .targetPanel {
   position: fixed;
   z-index: 30;
-  bottom: 34px;
+  bottom: 28px;
   left: 50%;
-  width: min(680px, calc(100vw - 44px));
-  padding: 16px 20px 18px;
+  width: min(760px, calc(100vw - 44px));
+  padding: 14px 22px 16px;
   transform: translateX(-50%);
   background:
-    linear-gradient(90deg, rgba(100, 224, 255, 0.16), transparent 22%, transparent 78%, rgba(255, 79, 193, 0.13)),
-    linear-gradient(145deg, rgba(100, 224, 255, 0.15), transparent 36%),
-    linear-gradient(315deg, rgba(255, 79, 193, 0.1), transparent 38%),
-    rgba(2, 8, 18, 0.9);
-  border: 1px solid rgba(100, 224, 255, 0.48);
-  border-top: 4px solid var(--cyan);
-  clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%, 0 22px);
-  backdrop-filter: blur(18px);
+    linear-gradient(90deg, rgba(115, 237, 255, 0.18), transparent 24%, transparent 76%, rgba(255, 63, 183, 0.16)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 42%),
+    rgba(3, 7, 18, 0.92);
+  border: 1px solid rgba(115, 237, 255, 0.56);
+  border-top: 3px solid var(--cyan);
+  border-bottom: 3px solid rgba(255, 63, 183, 0.52);
+  clip-path: polygon(26px 0, calc(100% - 26px) 0, 100% 22px, calc(100% - 12px) 100%, 12px 100%, 0 22px);
+  backdrop-filter: blur(20px);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 0 56px rgba(100, 224, 255, 0.22),
-    0 0 90px rgba(255, 79, 193, 0.1);
+    0 0 56px rgba(115, 237, 255, 0.24),
+    0 0 90px rgba(255, 63, 183, 0.13);
   opacity: 1;
   transition: 0.18s ease;
 }
@@ -338,7 +404,7 @@ body::after {
 .lockBadge {
   padding: 4px 8px;
   color: #07101c;
-  background: var(--orange);
+  background: linear-gradient(90deg, var(--orange), var(--hot));
   border-radius: 2px;
   box-shadow: 0 0 18px rgba(255, 138, 42, 0.4);
   font-size: 10px;
@@ -362,9 +428,9 @@ body::after {
   margin: 5px 0 12px;
   overflow: hidden;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 60px;
+  font-size: 62px;
   font-weight: 950;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.075em;
   line-height: 1.02;
   text-align: center;
   text-overflow: ellipsis;
@@ -437,7 +503,7 @@ body::after {
 
 .progressBar {
   flex: 1;
-  height: 8px;
+  height: 9px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.09);
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -445,8 +511,10 @@ body::after {
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--cyan), var(--orange));
-  box-shadow: 0 0 16px var(--cyan);
+  background: linear-gradient(90deg, var(--cyan), var(--green), var(--orange), var(--magenta));
+  box-shadow:
+    0 0 16px var(--cyan),
+    0 0 30px rgba(255, 63, 183, 0.22);
   transition: width 0.08s;
 }
 
@@ -458,27 +526,30 @@ body::after {
   place-items: center;
   padding: 16px;
   background:
-    radial-gradient(circle at 50% 50%, rgba(100, 224, 255, 0.08), transparent 38%),
-    rgba(1, 3, 8, 0.76);
-  backdrop-filter: blur(12px);
+    radial-gradient(circle at 50% 42%, rgba(115, 237, 255, 0.1), transparent 36%),
+    radial-gradient(circle at 50% 56%, rgba(255, 63, 183, 0.12), transparent 40%),
+    rgba(1, 3, 8, 0.68);
+  backdrop-filter: blur(10px);
 }
 
 .menuCard {
   position: relative;
-  width: min(760px, calc(100vw - 40px));
-  padding: 34px 32px;
+  width: min(820px, calc(100vw - 40px));
+  padding: 34px 34px 32px;
   text-align: center;
   background:
-    linear-gradient(90deg, rgba(100, 224, 255, 0.08), transparent 22%, transparent 78%, rgba(255, 177, 59, 0.08)),
-    radial-gradient(circle at top left, rgba(100, 224, 255, 0.18), transparent 38%),
-    radial-gradient(circle at bottom right, rgba(255, 79, 193, 0.12), transparent 42%),
+    linear-gradient(90deg, rgba(115, 237, 255, 0.1), transparent 22%, transparent 78%, rgba(255, 63, 183, 0.1)),
+    radial-gradient(circle at top left, rgba(115, 237, 255, 0.2), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(255, 63, 183, 0.16), transparent 42%),
     var(--panel-strong);
-  border: 1px solid rgba(0, 242, 254, 0.42);
-  border-top: 4px solid var(--cyan);
-  clip-path: polygon(32px 0, 100% 0, 100% calc(100% - 32px), calc(100% - 32px) 100%, 0 100%, 0 32px);
+  border: 1px solid rgba(115, 237, 255, 0.46);
+  border-top: 3px solid var(--cyan);
+  border-bottom: 3px solid rgba(255, 63, 183, 0.46);
+  clip-path: polygon(36px 0, calc(100% - 14px) 0, 100% 26px, 100% calc(100% - 36px), calc(100% - 36px) 100%, 14px 100%, 0 calc(100% - 26px), 0 36px);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 0 86px rgba(100, 224, 255, 0.18);
+    0 0 86px rgba(115, 237, 255, 0.2),
+    0 0 120px rgba(255, 63, 183, 0.1);
 }
 
 .menuCard::before,
@@ -504,7 +575,7 @@ body::after {
 
 .kicker {
   margin-bottom: 10px;
-  color: var(--orange);
+  color: var(--hot);
   font-size: 12px;
   font-weight: 950;
   letter-spacing: 0.22em;
@@ -512,14 +583,14 @@ body::after {
 
 .title {
   margin: 0 0 13px;
-  font-size: 70px;
+  font-size: 74px;
   font-weight: 1000;
   letter-spacing: 0.06em;
   line-height: 0.88;
   text-shadow:
-    2px 0 0 rgba(255, 79, 193, 0.28),
-    -2px 0 0 rgba(100, 224, 255, 0.26),
-    0 0 34px rgba(100, 224, 255, 0.28);
+    2px 0 0 rgba(255, 63, 183, 0.32),
+    -2px 0 0 rgba(115, 237, 255, 0.3),
+    0 0 38px rgba(115, 237, 255, 0.3);
 }
 
 .title.small {
@@ -557,12 +628,16 @@ button,
   align-items: center;
   justify-content: center;
   min-width: 180px;
-  padding: 13px 22px;
+  padding: 14px 24px;
   color: var(--text);
-  background: rgba(0, 242, 254, 0.1);
-  border: 1px solid var(--cyan);
-  clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
-  box-shadow: 0 0 24px rgba(0, 242, 254, 0.14);
+  background:
+    linear-gradient(90deg, rgba(115, 237, 255, 0.12), rgba(255, 63, 183, 0.06)),
+    rgba(4, 8, 20, 0.72);
+  border: 1px solid rgba(115, 237, 255, 0.48);
+  clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 24px rgba(115, 237, 255, 0.14);
   cursor: pointer;
   font: inherit;
   font-weight: 950;
@@ -588,11 +663,15 @@ button:hover,
 .shareButton:hover {
   color: #02101b;
   background: var(--cyan);
-  box-shadow: 0 0 32px rgba(0, 242, 254, 0.34);
+  box-shadow:
+    0 0 24px rgba(115, 237, 255, 0.42),
+    0 0 48px rgba(255, 63, 183, 0.16);
 }
 
 .orangeButton {
-  background: rgba(255, 138, 42, 0.16);
+  background:
+    linear-gradient(90deg, rgba(255, 209, 102, 0.16), rgba(255, 63, 183, 0.08)),
+    rgba(4, 8, 20, 0.72);
   border-color: var(--orange);
 }
 
