@@ -159,6 +159,14 @@ const LANGUAGE_CONFIG = {
   },
 };
 
+const WORD_LENGTH_CYCLE = {
+  cycleSize: 18,
+  growthSpan: 13,
+  burstSpan: 5,
+  minLength: 3,
+  maxLength: 10,
+};
+
 const MODE_CONFIG = {
   normal: {
     label: "NORMAL MODE",
@@ -405,27 +413,62 @@ function buildRomajiOptions(reading) {
   return uniqueOptions(build(0));
 }
 
-function createWordEntry(language, breaks = 0) {
-  if (language === "japanese") {
-    const item = JAPANESE_WORDS[Math.floor(Math.random() * JAPANESE_WORDS.length)];
-    return {
-      prompt: item.prompt,
-      reading: item.reading,
-      answerOptions: buildRomajiOptions(item.reading),
-      language,
-    };
-  }
-
-  const base = ENGLISH_WORDS[Math.floor(Math.random() * ENGLISH_WORDS.length)];
-  const prompt =
-    breaks > 14 && Math.random() < 0.32
-      ? `${base}${ENGLISH_WORDS[Math.floor(Math.random() * ENGLISH_WORDS.length)].slice(0, 3)}`
-      : base;
+function getEnemyPacing(breaks = 0) {
+  const safeBreaks = Math.max(0, breaks);
+  const cycle = WORD_LENGTH_CYCLE.cycleSize;
+  const phase = safeBreaks % cycle;
+  const loop = Math.floor(safeBreaks / cycle);
+  const inBurst = phase >= WORD_LENGTH_CYCLE.growthSpan;
+  const burstPhase = inBurst ? phase - WORD_LENGTH_CYCLE.growthSpan : 0;
+  const growthRatio = inBurst ? 0 : clamp(phase / (WORD_LENGTH_CYCLE.growthSpan - 1), 0, 1);
+  const longTarget = Math.round(
+    WORD_LENGTH_CYCLE.minLength + (WORD_LENGTH_CYCLE.maxLength - WORD_LENGTH_CYCLE.minLength) * growthRatio,
+  );
+  const shortBurstTarget = WORD_LENGTH_CYCLE.minLength + Math.min(2, Math.floor(burstPhase / 2));
+  const targetLength = inBurst ? shortBurstTarget : longTarget;
+  const loopBoost = loop * 0.05;
+  const burstBoost = inBurst ? 0.22 + (burstPhase / Math.max(1, WORD_LENGTH_CYCLE.burstSpan - 1)) * 0.13 : 0;
 
   return {
-    prompt,
-    reading: prompt,
-    answerOptions: [prompt.toLowerCase()],
+    targetLength,
+    lengthTolerance: inBurst ? 1 : 2 + Math.min(1, Math.floor(loop / 2)),
+    speedMultiplier: 1 + loopBoost + burstBoost,
+    spawnIntervalMultiplier: 1 - Math.min(0.42, loopBoost * 0.82 + burstBoost * 0.62),
+  };
+}
+
+const JAPANESE_WORD_ENTRIES = JAPANESE_WORDS.map((item) => {
+  const answerOptions = buildRomajiOptions(item.reading);
+  return {
+    prompt: item.prompt,
+    reading: item.reading,
+    answerOptions,
+    minInputLength: Math.min(...answerOptions.map((option) => option.length)),
+    language: "japanese",
+  };
+});
+
+const ENGLISH_WORD_ENTRIES = ENGLISH_WORDS.map((word) => ({
+  prompt: word,
+  reading: word,
+  answerOptions: [word.toLowerCase()],
+  minInputLength: word.length,
+  language: "english",
+}));
+
+function createWordEntry(language, breaks = 0) {
+  const pacing = getEnemyPacing(breaks);
+  const pool = language === "japanese" ? JAPANESE_WORD_ENTRIES : ENGLISH_WORD_ENTRIES;
+  const candidates = pool.filter(
+    (item) => Math.abs(item.minInputLength - pacing.targetLength) <= pacing.lengthTolerance,
+  );
+  const pickFrom = candidates.length ? candidates : pool;
+  const picked = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+
+  return {
+    prompt: picked.prompt,
+    reading: picked.reading,
+    answerOptions: picked.answerOptions,
     language,
   };
 }
@@ -803,7 +846,7 @@ function App() {
 
   const projectDepth = (lane, depth, bob = 0) => {
     const s = stateRef.current;
-    const horizon = s.height * 0.34;
+    const horizon = s.height * 0.22;
     const floor = getPlayfieldBottom(s.height);
     const eased = depth ** 1.58;
     const scale = 0.38 + depth * 1.12;
@@ -856,10 +899,11 @@ function App() {
     if (s.enemies.length >= getActiveEnemyLimit()) return;
 
     const word = createWordEntry(s.language, s.breaks);
-    const placement = findSpawnPlacement(false, 0.02, 0.14);
+    const pacing = getEnemyPacing(s.breaks);
+    const placement = findSpawnPlacement(false, 0.01, 0.1);
     if (!placement) return;
     const { lane, depth, projected } = placement;
-    const speed = random(0.045, 0.074) + Math.min(0.03, s.breaks * 0.0012);
+    const speed = (random(0.056, 0.084) + Math.min(0.032, s.breaks * 0.001)) * pacing.speedMultiplier;
     const inputLength = Math.min(...word.answerOptions.map((option) => option.length));
 
     s.enemies.push({
@@ -1772,9 +1816,15 @@ function App() {
     const s = stateRef.current;
     const cfg = MODE_CONFIG[s.mode];
 
+    const pacing = getEnemyPacing(s.breaks);
+    const enemyInterval = Math.max(
+      cfg.enemyMinInterval * 0.82,
+      (cfg.enemyBaseInterval - s.breaks * 10) * pacing.spawnIntervalMultiplier,
+    );
+
     if (!s.running || s.over) return;
 
-    if (now - s.lastEnemy > Math.max(cfg.enemyMinInterval, cfg.enemyBaseInterval - s.breaks * 12)) {
+    if (now - s.lastEnemy > enemyInterval) {
       spawnEnemy();
       s.lastEnemy = now;
     }
