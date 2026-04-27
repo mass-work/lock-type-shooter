@@ -10,7 +10,7 @@ Aim with a mouse or trackball, click to lock a target, then type the displayed w
 - English and expanded Japanese romaji typing modes
 - Dedicated typing dock separated from the playfield
 - Synthesized Web Audio sound effects
-- Varied asteroid paths, combo scoring, no-miss milestone bonuses, rank results, and overdrive clears
+- Funnel-style enemy approach, varied asteroid paths, combo scoring, no-miss milestone bonuses, miss-ended bonus time rushes, rank results, and overdrive clears
 - GitHub Pages deployment via GitHub Actions
 - MIT License
 

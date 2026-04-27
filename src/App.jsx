@@ -223,6 +223,17 @@ const NO_MISS_BONUS_RULES = {
   },
 };
 
+const BONUS_TIME_CONFIG = {
+  firstMilestone: 100,
+  milestoneStep: 200,
+  maxMisses: 3,
+  maxEnemies: 16,
+  initialEnemies: 10,
+  spawnInterval: 90,
+  baseScore: 1200,
+  scoreRamp: 420,
+};
+
 const initialStats = {
   score: 0,
   hp: 100,
@@ -238,6 +249,10 @@ const initialStats = {
   noMissKeys: 0,
   nextNoMissBreakBonus: NO_MISS_BONUS_RULES.break.step,
   nextNoMissKeyBonus: NO_MISS_BONUS_RULES.typing.step,
+  nextBonusTimeKey: BONUS_TIME_CONFIG.firstMilestone,
+  bonusTimeActive: false,
+  bonusTimeMisses: 0,
+  bonusTimeMaxMisses: BONUS_TIME_CONFIG.maxMisses,
 };
 
 const RANKS = [
@@ -261,6 +276,11 @@ function getNoMissBonus(kind, milestone) {
   const amount = rule.baseScore + (tier - 1) * rule.scoreRamp + (major ? rule.majorScore : 0);
 
   return { rule, amount, major };
+}
+
+function getBonusTimeReward(milestone) {
+  const tier = Math.max(1, Math.floor((milestone - BONUS_TIME_CONFIG.firstMilestone) / BONUS_TIME_CONFIG.milestoneStep) + 1);
+  return BONUS_TIME_CONFIG.baseScore + (tier - 1) * BONUS_TIME_CONFIG.scoreRamp;
 }
 
 const ROMAJI_MAP = {
@@ -544,6 +564,7 @@ function makeGameState(mode = "normal", language = "english") {
     lastHudSync: 0,
     lastEnemy: 0,
     lastAsteroid: 0,
+    lastBonusEnemy: 0,
     nextId: 1,
     shake: 0,
     lockTimes: [],
@@ -551,6 +572,10 @@ function makeGameState(mode = "normal", language = "english") {
     noMissKeys: 0,
     nextNoMissBreakBonus: NO_MISS_BONUS_RULES.break.step,
     nextNoMissKeyBonus: NO_MISS_BONUS_RULES.typing.step,
+    nextBonusTimeKey: BONUS_TIME_CONFIG.firstMilestone,
+    bonusTimeActive: false,
+    bonusTimeMisses: 0,
+    bonusTimeLevel: 0,
   };
 }
 
@@ -708,6 +733,15 @@ function App() {
         tone(options.major ? 1320 : 980, 0.22, { to: options.major ? 1980 : 1480, type: "sine", gain: options.major ? 0.046 : 0.034, delay: 0.16 });
         if (options.major) noise(0.24, { frequency: 2600, gain: 0.03, delay: 0.04 });
         break;
+      case "rush":
+        tone(260, 0.12, { to: 520, type: "sawtooth", gain: 0.044 });
+        tone(520, 0.18, { to: 1560, type: "triangle", gain: 0.046, delay: 0.07 });
+        noise(0.22, { frequency: 3000, gain: 0.026, delay: 0.04 });
+        break;
+      case "rushEnd":
+        tone(520, 0.12, { to: 220, type: "triangle", gain: 0.034 });
+        tone(260, 0.16, { to: 110, type: "sine", gain: 0.028, delay: 0.08 });
+        break;
       case "overdrive":
         tone(90, 0.34, { to: 48, type: "sawtooth", gain: 0.064 });
         tone(420, 0.42, { to: 1800, type: "triangle", gain: 0.052 });
@@ -763,6 +797,84 @@ function App() {
     }
   };
 
+  const isBonusTimeActive = (now = performance.now()) => {
+    const s = stateRef.current;
+    return s.running && !s.over && s.bonusTimeActive;
+  };
+
+  const endBonusTime = (message = "BONUS TIME COMPLETE", type = "good") => {
+    const s = stateRef.current;
+    if (!s.bonusTimeActive) return;
+
+    s.bonusTimeActive = false;
+    s.bonusTimeMisses = 0;
+    s.bonusTimeLevel = 0;
+    s.lastBonusEnemy = 0;
+    s.enemies = s.enemies.filter((enemy) => !enemy.bonusTarget);
+    playSfx(type === "bad" ? "rushEnd" : "chain");
+    showNotice(message, type);
+    syncHud();
+  };
+
+  const startBonusTime = (milestone, x, y) => {
+    const s = stateRef.current;
+    const tier = Math.max(1, Math.floor((milestone - BONUS_TIME_CONFIG.firstMilestone) / BONUS_TIME_CONFIG.milestoneStep) + 1);
+    const reward = getBonusTimeReward(milestone);
+
+    s.score += reward;
+    s.bonusTimeActive = true;
+    s.bonusTimeMisses = 0;
+    s.bonusTimeLevel = tier;
+    s.lastBonusEnemy = 0;
+    s.lockedId = null;
+    s.typedText = "";
+    s.asteroids = [];
+    s.shake = Math.max(s.shake, 34);
+
+    addMilestoneSurge(x, y, "typing", true);
+    addParticles(x, y, 70, "magenta");
+    addParticles(s.pointer.x, s.pointer.y, 58, "cyan");
+    showBonus(`BONUS TIME ${milestone}`, "CLICK-BREAK RUSH / ENDS ON MISSES", reward, "typing", true);
+    playSfx("rush");
+    showNotice("BONUS TIME START", "good");
+
+    for (let i = 0; i < BONUS_TIME_CONFIG.initialEnemies; i += 1) {
+      spawnEnemy({ bonus: true });
+    }
+
+    syncHud();
+  };
+
+  const awardPendingBonusTime = (x, y) => {
+    const s = stateRef.current;
+
+    while (s.noMissKeys >= s.nextBonusTimeKey) {
+      const milestone = s.nextBonusTimeKey;
+      startBonusTime(milestone, x, y);
+      s.nextBonusTimeKey += BONUS_TIME_CONFIG.milestoneStep;
+    }
+  };
+
+  const registerBonusMiss = (label = "RUSH MISS") => {
+    const s = stateRef.current;
+    if (!isBonusTimeActive()) return false;
+
+    s.bonusTimeMisses += 1;
+    s.combo = 0;
+    s.shake = Math.max(s.shake, 10);
+    triggerDamage();
+    playSfx("deny");
+
+    if (s.bonusTimeMisses >= BONUS_TIME_CONFIG.maxMisses) {
+      endBonusTime("BONUS TIME FAILED", "bad");
+    } else {
+      showNotice(`${label} ${s.bonusTimeMisses}/${BONUS_TIME_CONFIG.maxMisses}`, "bad");
+      syncHud();
+    }
+
+    return true;
+  };
+
   const computeStats = () => {
     const s = stateRef.current;
     const elapsedMin = s.startAt ? Math.max(0.01, (performance.now() - s.startAt) / 60000) : 0.01;
@@ -787,6 +899,10 @@ function App() {
       noMissKeys: s.noMissKeys,
       nextNoMissBreakBonus: s.nextNoMissBreakBonus,
       nextNoMissKeyBonus: s.nextNoMissKeyBonus,
+      nextBonusTimeKey: s.nextBonusTimeKey,
+      bonusTimeActive: isBonusTimeActive(),
+      bonusTimeMisses: s.bonusTimeMisses,
+      bonusTimeMaxMisses: BONUS_TIME_CONFIG.maxMisses,
     };
   };
 
@@ -850,7 +966,7 @@ function App() {
     const floor = getPlayfieldBottom(s.height);
     const eased = depth ** 1.58;
     const scale = 0.38 + depth * 1.12;
-    const spread = s.width * (0.2 + depth * 0.32);
+    const spread = s.width * (0.42 - depth * 0.15);
 
     return {
       x: s.width / 2 + lane * spread,
@@ -891,20 +1007,24 @@ function App() {
   const getActiveEnemyLimit = () => {
     const s = stateRef.current;
     const cfg = MODE_CONFIG[s.mode];
+    if (isBonusTimeActive()) return BONUS_TIME_CONFIG.maxEnemies;
     return Math.min(cfg.maxEnemies, cfg.startEnemies + Math.floor(s.breaks / 4));
   };
 
-  const spawnEnemy = () => {
+  const spawnEnemy = ({ bonus = false } = {}) => {
     const s = stateRef.current;
     if (s.enemies.length >= getActiveEnemyLimit()) return;
 
     const word = createWordEntry(s.language, s.breaks);
     const pacing = getEnemyPacing(s.breaks);
-    const placement = findSpawnPlacement(false, 0.01, 0.1);
+    const placement = findSpawnPlacement(bonus, 0.01, bonus ? 0.18 : 0.1);
     if (!placement) return;
     const { lane, depth, projected } = placement;
-    const speed = (random(0.056, 0.084) + Math.min(0.032, s.breaks * 0.001)) * pacing.speedMultiplier;
+    const speed = bonus
+      ? random(0.068, 0.112)
+      : (random(0.056, 0.084) + Math.min(0.032, s.breaks * 0.001)) * pacing.speedMultiplier;
     const inputLength = Math.min(...word.answerOptions.map((option) => option.length));
+    const baseRadius = bonus ? 23 + random(0, 8) : 25 + Math.min(18, inputLength * 0.9);
 
     s.enemies.push({
       id: s.nextId++,
@@ -917,12 +1037,13 @@ function App() {
       vx: random(-0.055, 0.055),
       vy: speed,
       scale: projected.scale,
-      baseRadius: 25 + Math.min(18, inputLength * 0.9),
-      radius: (25 + Math.min(18, inputLength * 0.9)) * projected.scale,
+      baseRadius,
+      radius: baseRadius * projected.scale,
       hpRate: 1,
       born: performance.now(),
       phase: random(0, Math.PI * 2),
       drift: random(0.7, 1.6),
+      bonusTarget: bonus,
       shake: 0,
       dead: false,
     });
@@ -1072,6 +1193,11 @@ function App() {
     const s = stateRef.current;
     if (!s.running || s.over) return;
 
+    if (isBonusTimeActive()) {
+      breakEnemy(enemy, { bonusClick: true });
+      return;
+    }
+
     s.lockedId = enemy.id;
     s.typedText = "";
     s.locks += 1;
@@ -1118,6 +1244,10 @@ function App() {
     s.noMissKeys = 0;
     s.nextNoMissBreakBonus = NO_MISS_BONUS_RULES.break.step;
     s.nextNoMissKeyBonus = NO_MISS_BONUS_RULES.typing.step;
+    s.nextBonusTimeKey = BONUS_TIME_CONFIG.firstMilestone;
+    s.bonusTimeActive = false;
+    s.bonusTimeMisses = 0;
+    s.bonusTimeLevel = 0;
     s.hp = clamp(s.hp - damage, 0, 100);
     s.shake = 12;
 
@@ -1136,17 +1266,22 @@ function App() {
     syncHud();
   };
 
-  const breakEnemy = (enemy) => {
+  const breakEnemy = (enemy, options = {}) => {
     const s = stateRef.current;
     const bestAnswerLength = Math.min(...enemy.answerOptions.map((option) => option.length));
-    const bonus = 110 + bestAnswerLength * 9 + Math.min(360, s.combo * 24);
+    const clickRush = options.bonusClick || enemy.bonusTarget;
+    const bonus = clickRush
+      ? 85 + Math.min(260, s.combo * 14) + s.bonusTimeLevel * 18
+      : 110 + bestAnswerLength * 9 + Math.min(360, s.combo * 24);
 
     s.score += bonus;
     s.combo += 1;
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.breaks += 1;
     s.noMissBreaks += 1;
-    chargeSpecial(16 + Math.min(20, s.combo * 2));
+    if (!clickRush) {
+      chargeSpecial(16 + Math.min(20, s.combo * 2));
+    }
 
     awardPendingNoMissBonuses("break", enemy.x, enemy.y);
     s.lockedId = null;
@@ -1162,8 +1297,8 @@ function App() {
     });
 
     addParticles(enemy.x, enemy.y, 40, "orange");
-    addFloater(`+${bonus}`, enemy.x, enemy.y - 44, "cyan");
-    addFloater("BREAK", enemy.x, enemy.y - 20, "orange");
+    addFloater(`+${bonus}`, enemy.x, enemy.y - 44, clickRush ? "magenta" : "cyan");
+    addFloater(clickRush ? "RUSH BREAK" : "BREAK", enemy.x, enemy.y - 20, "orange");
     playSfx("break");
     s.enemies = s.enemies.filter((item) => item.id !== enemy.id);
 
@@ -1215,6 +1350,7 @@ function App() {
 
       if (matches.some((option) => option === nextText)) {
         breakEnemy(enemy);
+        awardPendingBonusTime(enemy.x, enemy.y);
       } else {
         syncHud();
       }
@@ -1345,11 +1481,18 @@ function App() {
   const drawEnemy = (ctx, enemy, now) => {
     const s = stateRef.current;
     const locked = s.lockedId === enemy.id;
+    const rush = enemy.bonusTarget;
     const hovered = distance(s.pointer.x, s.pointer.y, enemy.x, enemy.y) < enemy.radius + 38;
     const pulse = Math.sin(now * 0.006 + enemy.phase) * 0.5 + 0.5;
     const x = enemy.x + (enemy.shake ? random(-enemy.shake, enemy.shake) : 0);
     const y = enemy.y + (enemy.shake ? random(-enemy.shake, enemy.shake) : 0);
-    const glow = locked ? "rgba(255,79,193,.62)" : hovered ? "rgba(100,224,255,.5)" : "rgba(255,79,193,.28)";
+    const glow = rush
+      ? "rgba(255,209,102,.7)"
+      : locked
+        ? "rgba(255,79,193,.62)"
+        : hovered
+          ? "rgba(100,224,255,.5)"
+          : "rgba(255,79,193,.28)";
 
     ctx.save();
     ctx.translate(x, y);
@@ -1357,8 +1500,8 @@ function App() {
     ctx.globalAlpha = 0.42 + pulse * 0.22;
     ctx.strokeStyle = glow;
     ctx.lineWidth = 2;
-    ctx.shadowColor = locked ? "rgba(255,79,193,.95)" : "rgba(100,224,255,.65)";
-    ctx.shadowBlur = locked ? 28 : 18;
+    ctx.shadowColor = rush ? "rgba(255,209,102,.9)" : locked ? "rgba(255,79,193,.95)" : "rgba(100,224,255,.65)";
+    ctx.shadowBlur = rush ? 26 : locked ? 28 : 18;
     ctx.beginPath();
     ctx.ellipse(0, 0, enemy.baseRadius + 34, enemy.baseRadius + 18, now * 0.001 + enemy.phase, 0, Math.PI * 2);
     ctx.stroke();
@@ -1373,20 +1516,20 @@ function App() {
     ctx.scale(enemy.scale, enemy.scale);
 
     const coreGradient = ctx.createRadialGradient(0, 0, 1, 0, 0, enemy.baseRadius + 26);
-    coreGradient.addColorStop(0, locked ? "rgba(255,255,255,.95)" : "rgba(255,140,255,.92)");
-    coreGradient.addColorStop(0.22, locked ? "rgba(255,177,59,.92)" : "rgba(255,79,193,.78)");
+    coreGradient.addColorStop(0, locked || rush ? "rgba(255,255,255,.95)" : "rgba(255,140,255,.92)");
+    coreGradient.addColorStop(0.22, rush ? "rgba(255,209,102,.92)" : locked ? "rgba(255,177,59,.92)" : "rgba(255,79,193,.78)");
     coreGradient.addColorStop(0.58, "rgba(100,224,255,.26)");
     coreGradient.addColorStop(1, "rgba(100,224,255,0)");
 
     ctx.fillStyle = coreGradient;
-    ctx.shadowColor = locked ? "rgba(255,177,59,.95)" : "rgba(255,79,193,.75)";
-    ctx.shadowBlur = locked ? 30 : 22;
+    ctx.shadowColor = rush ? "rgba(255,209,102,.95)" : locked ? "rgba(255,177,59,.95)" : "rgba(255,79,193,.75)";
+    ctx.shadowBlur = rush ? 30 : locked ? 30 : 22;
     ctx.beginPath();
     ctx.arc(0, 0, enemy.baseRadius + 12, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.shadowBlur = 0;
-    ctx.strokeStyle = locked ? "rgba(255,138,42,.98)" : hovered ? "rgba(100,224,255,.98)" : "rgba(100,224,255,.6)";
+    ctx.strokeStyle = rush ? "rgba(255,240,168,.98)" : locked ? "rgba(255,138,42,.98)" : hovered ? "rgba(100,224,255,.98)" : "rgba(100,224,255,.6)";
     ctx.lineWidth = locked ? 2.6 : 1.45;
 
     const size = enemy.baseRadius + 16 + pulse * 3;
@@ -1406,7 +1549,7 @@ function App() {
 
     ctx.save();
     ctx.rotate(now * 0.0018 + enemy.phase);
-    ctx.strokeStyle = locked ? "rgba(255,177,59,.82)" : "rgba(255,79,193,.58)";
+    ctx.strokeStyle = rush ? "rgba(255,240,168,.86)" : locked ? "rgba(255,177,59,.82)" : "rgba(255,79,193,.58)";
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(0, 0, enemy.baseRadius + 24, Math.PI * 0.08, Math.PI * 0.82);
@@ -1429,7 +1572,7 @@ function App() {
     ].forEach(([dx, dy]) => {
       const px = dx * (enemy.baseRadius + 18);
       const py = dy * (enemy.baseRadius + 18);
-      ctx.fillStyle = locked ? "rgba(255,177,59,.95)" : "rgba(100,224,255,.88)";
+      ctx.fillStyle = rush ? "rgba(255,240,168,.95)" : locked ? "rgba(255,177,59,.95)" : "rgba(100,224,255,.88)";
       ctx.shadowColor = ctx.fillStyle;
       ctx.shadowBlur = 12;
       ctx.fillRect(px - 5, py - 5, 10, 10);
@@ -1466,7 +1609,8 @@ function App() {
 
     ctx.restore();
 
-    const labelSize = locked ? 18 : clamp(13 + enemy.depth * 5, 13, 18);
+    const labelText = rush ? "CLICK" : enemy.prompt;
+    const labelSize = locked || rush ? 18 : clamp(13 + enemy.depth * 5, 13, 18);
     const labelY = y + Math.max(38, enemy.radius + 24);
     const labelFont =
       enemy.language === "japanese"
@@ -1477,20 +1621,20 @@ function App() {
     ctx.font = labelFont;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const plateWidth = Math.min(s.width - 28, Math.max(72, ctx.measureText(enemy.prompt).width + 28));
+    const plateWidth = Math.min(s.width - 28, Math.max(72, ctx.measureText(labelText).width + 28));
     const plateHeight = labelSize + 15;
     const labelX = clamp(x, plateWidth / 2 + 14, s.width - plateWidth / 2 - 14);
-    ctx.globalAlpha = locked ? 0.98 : 0.82;
-    ctx.fillStyle = locked ? "rgba(12, 10, 18, .9)" : "rgba(3, 8, 18, .74)";
-    ctx.strokeStyle = locked ? "rgba(255,177,59,.78)" : "rgba(100,224,255,.34)";
+    ctx.globalAlpha = locked || rush ? 0.98 : 0.82;
+    ctx.fillStyle = rush ? "rgba(24, 14, 4, .9)" : locked ? "rgba(12, 10, 18, .9)" : "rgba(3, 8, 18, .74)";
+    ctx.strokeStyle = rush ? "rgba(255,240,168,.82)" : locked ? "rgba(255,177,59,.78)" : "rgba(100,224,255,.34)";
     ctx.lineWidth = 1;
-    ctx.shadowColor = locked ? "rgba(255,177,59,.42)" : "rgba(100,224,255,.2)";
-    ctx.shadowBlur = locked ? 18 : 10;
+    ctx.shadowColor = rush ? "rgba(255,209,102,.52)" : locked ? "rgba(255,177,59,.42)" : "rgba(100,224,255,.2)";
+    ctx.shadowBlur = locked || rush ? 18 : 10;
     ctx.fillRect(labelX - plateWidth / 2, labelY - plateHeight / 2, plateWidth, plateHeight);
     ctx.strokeRect(labelX - plateWidth / 2, labelY - plateHeight / 2, plateWidth, plateHeight);
     ctx.shadowBlur = 0;
-    ctx.fillStyle = locked ? "rgba(255,209,102,.98)" : "rgba(233,251,255,.9)";
-    ctx.fillText(enemy.prompt, labelX, labelY + 0.5);
+    ctx.fillStyle = rush ? "rgba(255,240,168,.98)" : locked ? "rgba(255,209,102,.98)" : "rgba(233,251,255,.9)";
+    ctx.fillText(labelText, labelX, labelY + 0.5);
     ctx.restore();
   };
 
@@ -1824,12 +1968,17 @@ function App() {
 
     if (!s.running || s.over) return;
 
-    if (now - s.lastEnemy > enemyInterval) {
+    const bonusActive = isBonusTimeActive(now);
+
+    if (bonusActive && now - s.lastBonusEnemy > BONUS_TIME_CONFIG.spawnInterval) {
+      spawnEnemy({ bonus: true });
+      s.lastBonusEnemy = now;
+    } else if (!bonusActive && now - s.lastEnemy > enemyInterval) {
       spawnEnemy();
       s.lastEnemy = now;
     }
 
-    if (cfg.asteroid && now - s.lastAsteroid > Math.max(980, 2400 - s.breaks * 8)) {
+    if (!bonusActive && cfg.asteroid && now - s.lastAsteroid > Math.max(980, 2400 - s.breaks * 8)) {
       spawnAsteroid();
       s.lastAsteroid = now;
     }
@@ -1853,7 +2002,11 @@ function App() {
           s.typedText = "";
         }
         enemy.dead = true;
-        registerMiss(8);
+        if (bonusActive || enemy.bonusTarget) {
+          registerBonusMiss("ESCAPED");
+        } else {
+          registerMiss(8);
+        }
       }
     });
 
@@ -1959,6 +2112,7 @@ function App() {
 
       const enemy = hitTestEnemy(event.clientX, event.clientY);
       if (enemy) lockEnemy(enemy);
+      else if (isBonusTimeActive()) registerBonusMiss("EMPTY");
       else {
         playSfx("deny");
         showNotice("NO TARGET", "bad");
@@ -2012,6 +2166,10 @@ function App() {
   const next = activeAnswer.slice(typed.length, typed.length + 1);
   const rest = activeAnswer.slice(typed.length + 1);
   const progress = activeAnswer ? Math.round((typed.length / activeAnswer.length) * 100) : 0;
+  const bonusTimeActive = stats.bonusTimeActive;
+  const dockProgress = bonusTimeActive
+    ? Math.max(0, Math.min(100, Math.round(((stats.bonusTimeMaxMisses - stats.bonusTimeMisses) / stats.bonusTimeMaxMisses) * 100)))
+    : progress;
 
   return (
     <main className="gameShell">
@@ -2024,7 +2182,13 @@ function App() {
         <span className="scanLine" />
       </div>
       <div className="waveBanner">
-        <span>{phase === "game" ? `ACTIVE LIMIT ${getActiveEnemyLimit()}` : "SIMULATION READY"}</span>
+        <span>
+          {bonusTimeActive
+            ? `BONUS TIME / MISS ${stats.bonusTimeMisses}/${stats.bonusTimeMaxMisses}`
+            : phase === "game"
+              ? `ACTIVE LIMIT ${getActiveEnemyLimit()} / RUSH @ ${stats.nextBonusTimeKey}`
+              : "SIMULATION READY"}
+        </span>
       </div>
 
       <header className="hud">
@@ -2043,6 +2207,11 @@ function App() {
           <HudValue label="LOCK" value={stats.averageLock.toFixed(2)} />
           <HudValue label="NM BREAK" value={`${stats.noMissBreaks}/${stats.nextNoMissBreakBonus}`} tone="bonus" />
           <HudValue label="NM TYPE" value={`${stats.noMissKeys}/${stats.nextNoMissKeyBonus}`} tone="bonus" />
+          <HudValue
+            label="RUSH"
+            value={bonusTimeActive ? `${stats.bonusTimeMisses}/${stats.bonusTimeMaxMisses}` : `@${stats.nextBonusTimeKey}`}
+            tone={bonusTimeActive ? "rush" : "bonus"}
+          />
         </section>
 
         <section className={`shieldPanel ${stats.special >= 100 ? "overdriveReady" : ""}`}>
@@ -2068,13 +2237,15 @@ function App() {
         SFX {soundEnabled ? "ON" : "OFF"}
       </button>
 
-      <section className={`targetPanel ${target ? "locked" : "idle"}`}>
+      <section className={`targetPanel ${target ? "locked" : "idle"} ${bonusTimeActive ? "bonusMode" : ""}`}>
         <div className="targetTop">
-          <span className="lockBadge">{target ? "LOCKED" : "NO LOCK"}</span>
+          <span className="lockBadge">{bonusTimeActive ? "BONUS TIME" : target ? "LOCKED" : "NO LOCK"}</span>
           <span className="targetName">
-            {target
-              ? `${target.name} / ${activeAnswer.length} KEYS / ${target.language.toUpperCase()}`
-              : "CLICK A TARGET TO START TYPING"}
+            {bonusTimeActive
+              ? `CLICK TARGETS TO BREAK / MISS ${stats.bonusTimeMisses}/${stats.bonusTimeMaxMisses}`
+              : target
+                ? `${target.name} / ${activeAnswer.length} KEYS / ${target.language.toUpperCase()}`
+                : "CLICK A TARGET TO START TYPING"}
           </span>
         </div>
 
@@ -2086,7 +2257,9 @@ function App() {
         )}
 
         <div className="wordDisplay">
-          {target ? (
+          {bonusTimeActive ? (
+            <span className="bonusTimeText">CLICK BREAK RUSH</span>
+          ) : target ? (
             <>
               {target.language === "english" && <span className="promptGhost">{target.prompt}</span>}
               <span className="typed">{typed.toUpperCase()}</span>
@@ -2100,9 +2273,13 @@ function App() {
 
         <div className="progressRow">
           <div className="progressBar">
-            <div className="progressFill" style={{ width: `${progress}%` }} />
+            <div className="progressFill" style={{ width: `${dockProgress}%` }} />
           </div>
-          <span>{progress}%</span>
+          <span>
+            {bonusTimeActive
+              ? `MISS ${stats.bonusTimeMisses}/${stats.bonusTimeMaxMisses}`
+              : `${progress}%`}
+          </span>
         </div>
       </section>
 
@@ -2183,6 +2360,11 @@ function App() {
       )}
 
       {notice && <div className={`notice ${notice.type}`}>{notice.text}</div>}
+      {bonusTimeActive && (
+        <div className="bonusTimeCallout">
+          BONUS TIME / MISS {stats.bonusTimeMisses}/{stats.bonusTimeMaxMisses}
+        </div>
+      )}
       {stats.special >= 100 && phase === "game" && <div className="overdriveCallout">OVERDRIVE READY / SPACE</div>}
       {bonusBanner && (
         <div className={`bonusBanner ${bonusBanner.type} ${bonusBanner.major ? "major" : ""}`}>
