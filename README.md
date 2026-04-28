@@ -9,7 +9,7 @@ Aim with a mouse or trackball, click to lock a target, then type the displayed w
 - Lock-on pointing practice with mouse or trackball
 - Familiar English and Japanese word pools that grow from short words into longer words before cycling back
 - Dedicated typing dock separated from the playfield
-- Synthesized Web Audio sound effects
+- Procedural Web Audio shooting sound effects and background music
 - Funnel-style enemy approach, varied asteroid paths, combo scoring, no-miss milestone bonuses, miss-ended bonus time rushes, rank results, and overdrive clears
 - GitHub Pages deployment via GitHub Actions
 - MIT License
@@ -20,6 +20,16 @@ Aim with a mouse or trackball, click to lock a target, then type the displayed w
 npm install
 npm run dev
 ```
+
+## Source Layout
+
+- `src/App.jsx` keeps the main game loop, canvas rendering, scoring, and input flow.
+- `src/game/typingConfig.js` keeps typing languages, word pools, romaji variants, and word-length pacing.
+- `src/game/gameConfig.js` keeps score, rank, bonus time, and share text tuning.
+- `src/game/audio.js` keeps procedural shooting sound effects and background music.
+- `src/game/math.js` keeps small shared canvas/game math helpers.
+- `src/components/` keeps small reusable React UI components.
+- `public/result-card.jpg` is the large image card used when sharing results to X.
 
 ## Build
 

@@ -1237,27 +1237,35 @@ button:hover,
 
 .bonusBanner {
   position: fixed;
-  z-index: 72;
-  top: 45%;
+  z-index: 57;
+  top: 92px;
   left: 50%;
-  width: min(660px, calc(100vw - 60px));
-  padding: 22px 26px 24px;
-  transform: translate(-50%, -50%);
-  text-align: center;
+  display: grid;
+  width: min(580px, calc(100vw - 52px));
+  min-height: 64px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title score"
+    "detail score";
+  column-gap: 18px;
+  align-items: center;
+  padding: 10px 18px 12px;
+  transform: translateX(-50%);
+  text-align: left;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(115, 237, 255, 0.14), transparent 24%, transparent 76%, rgba(255, 63, 183, 0.18)),
-    radial-gradient(circle at 50% 50%, rgba(255, 209, 102, 0.2), transparent 50%),
-    rgba(3, 7, 18, 0.78);
+    linear-gradient(90deg, rgba(115, 237, 255, 0.16), transparent 46%, rgba(255, 63, 183, 0.14)),
+    rgba(3, 7, 18, 0.82);
   border: 1px solid rgba(255, 209, 102, 0.52);
-  border-top: 3px solid var(--hot);
-  border-bottom: 3px solid var(--magenta);
-  clip-path: polygon(34px 0, calc(100% - 34px) 0, 100% 30px, calc(100% - 16px) 100%, 16px 100%, 0 30px);
+  border-top: 2px solid var(--hot);
+  border-bottom: 2px solid var(--magenta);
+  clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 16px, calc(100% - 10px) 100%, 10px 100%, 0 16px);
+  backdrop-filter: blur(12px);
   box-shadow:
-    0 0 44px rgba(255, 209, 102, 0.3),
-    0 0 92px rgba(255, 63, 183, 0.18),
-    inset 0 0 34px rgba(255, 255, 255, 0.05);
-  animation: bonusBannerIn 1.45s ease-out forwards;
+    0 0 24px rgba(255, 209, 102, 0.22),
+    0 0 48px rgba(255, 63, 183, 0.14),
+    inset 0 0 22px rgba(255, 255, 255, 0.045);
+  animation: bonusBannerIn 1.35s ease-out forwards;
 }
 
 .bonusBanner::before,
@@ -1265,7 +1273,7 @@ button:hover,
   content: "";
   position: absolute;
   left: 50%;
-  width: 130vw;
+  width: calc(100% - 36px);
   height: 2px;
   transform: translateX(-50%);
   background: linear-gradient(90deg, transparent, var(--cyan), var(--hot), var(--magenta), transparent);
@@ -1273,33 +1281,39 @@ button:hover,
 }
 
 .bonusBanner::before {
-  top: 10px;
+  top: 7px;
 }
 
 .bonusBanner::after {
-  bottom: 10px;
+  bottom: 7px;
 }
 
 .bonusBanner span {
   display: block;
+  grid-area: title;
+  min-width: 0;
   color: var(--hot);
-  font-size: clamp(24px, 4.5vw, 52px);
+  overflow: hidden;
+  font-size: clamp(14px, 2.2vw, 22px);
   font-weight: 1000;
-  letter-spacing: 0.08em;
-  line-height: 1;
+  letter-spacing: 0.12em;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-shadow:
-    2px 0 0 rgba(255, 63, 183, 0.42),
-    -2px 0 0 rgba(115, 237, 255, 0.38),
-    0 0 30px rgba(255, 209, 102, 0.48);
+    1px 0 0 rgba(255, 63, 183, 0.38),
+    -1px 0 0 rgba(115, 237, 255, 0.32),
+    0 0 22px rgba(255, 209, 102, 0.38);
 }
 
 .bonusBanner strong {
   display: block;
-  margin-top: 8px;
+  grid-area: score;
   color: #fff;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: clamp(30px, 5.2vw, 62px);
+  font-size: clamp(22px, 3.2vw, 36px);
   line-height: 1;
+  white-space: nowrap;
   text-shadow:
     0 0 18px rgba(255, 255, 255, 0.4),
     0 0 32px rgba(115, 237, 255, 0.38);
@@ -1307,12 +1321,17 @@ button:hover,
 
 .bonusBanner em {
   display: block;
-  margin-top: 10px;
+  grid-area: detail;
+  min-width: 0;
+  margin-top: 4px;
   color: rgba(236, 251, 255, 0.72);
+  overflow: hidden;
   font-style: normal;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.16em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bonusBanner.typing {
@@ -1321,22 +1340,23 @@ button:hover,
 }
 
 .bonusBanner.major {
-  width: min(780px, calc(100vw - 42px));
+  top: 86px;
+  width: min(680px, calc(100vw - 42px));
+  min-height: 76px;
+  padding: 12px 22px 14px;
   border-color: rgba(255, 240, 168, 0.78);
-  border-top-width: 4px;
-  border-bottom-width: 4px;
+  border-top-width: 3px;
+  border-bottom-width: 3px;
   background:
-    linear-gradient(90deg, rgba(115, 237, 255, 0.2), transparent 22%, transparent 78%, rgba(255, 63, 183, 0.24)),
-    radial-gradient(circle at 50% 50%, rgba(255, 240, 168, 0.26), transparent 48%),
-    radial-gradient(circle at 18% 50%, rgba(100, 224, 255, 0.18), transparent 38%),
-    radial-gradient(circle at 82% 50%, rgba(255, 63, 183, 0.2), transparent 38%),
-    rgba(3, 7, 18, 0.84);
+    linear-gradient(90deg, rgba(115, 237, 255, 0.22), transparent 42%, rgba(255, 63, 183, 0.24)),
+    radial-gradient(circle at 24% 50%, rgba(255, 240, 168, 0.14), transparent 38%),
+    rgba(3, 7, 18, 0.88);
   box-shadow:
-    0 0 60px rgba(255, 240, 168, 0.38),
-    0 0 120px rgba(255, 63, 183, 0.24),
-    0 0 160px rgba(100, 224, 255, 0.18),
-    inset 0 0 46px rgba(255, 255, 255, 0.07);
-  animation: bonusBannerMajor 1.85s ease-out forwards;
+    0 0 34px rgba(255, 240, 168, 0.28),
+    0 0 76px rgba(255, 63, 183, 0.2),
+    0 0 90px rgba(100, 224, 255, 0.12),
+    inset 0 0 30px rgba(255, 255, 255, 0.06);
+  animation: bonusBannerMajor 1.6s ease-out forwards;
 }
 
 .bonusBanner.major::before,
@@ -1346,55 +1366,55 @@ button:hover,
 
 .bonusBanner.major span {
   color: #fff4b8;
-  font-size: clamp(32px, 5.5vw, 68px);
+  font-size: clamp(18px, 2.8vw, 30px);
   text-shadow:
-    3px 0 0 rgba(255, 63, 183, 0.48),
-    -3px 0 0 rgba(115, 237, 255, 0.46),
-    0 0 36px rgba(255, 240, 168, 0.62),
-    0 0 72px rgba(255, 63, 183, 0.34);
+    2px 0 0 rgba(255, 63, 183, 0.42),
+    -2px 0 0 rgba(115, 237, 255, 0.38),
+    0 0 28px rgba(255, 240, 168, 0.52),
+    0 0 52px rgba(255, 63, 183, 0.26);
 }
 
 .bonusBanner.major strong {
   color: #ffffff;
-  font-size: clamp(38px, 6vw, 78px);
+  font-size: clamp(28px, 4vw, 46px);
 }
 
 @keyframes bonusBannerIn {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.82);
-    filter: blur(8px);
+    transform: translate(-50%, -18px) scale(0.96);
+    filter: blur(6px);
   }
   14% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.08);
+    transform: translate(-50%, 0) scale(1.02);
     filter: blur(0);
   }
   28% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, 0) scale(1);
   }
   78% {
     opacity: 1;
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(1.04);
+    transform: translate(-50%, -10px) scale(1);
   }
 }
 
 @keyframes bonusBannerMajor {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.74) rotate(-0.8deg);
-    filter: blur(10px) brightness(1.8);
+    transform: translate(-50%, -18px) scale(0.94);
+    filter: blur(8px) brightness(1.6);
   }
   12% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.12) rotate(0.4deg);
+    transform: translate(-50%, 0) scale(1.04);
     filter: blur(0) brightness(1.35);
   }
   26% {
-    transform: translate(-50%, -50%) scale(1) rotate(0);
+    transform: translate(-50%, 0) scale(1);
     filter: brightness(1);
   }
   74% {
@@ -1402,6 +1422,44 @@ button:hover,
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(1.08);
+    transform: translate(-50%, -10px) scale(1);
+  }
+}
+
+@media (max-width: 980px) {
+  .bonusBanner {
+    top: 98px;
+    width: min(520px, calc(100vw - 24px));
+  }
+
+  .bonusBanner.major {
+    top: 92px;
+    width: min(580px, calc(100vw - 24px));
+  }
+}
+
+@media (max-width: 620px) {
+  .bonusBanner,
+  .bonusBanner.major {
+    top: 164px;
+    width: calc(100vw - 20px);
+    min-height: 56px;
+    column-gap: 10px;
+    padding: 8px 12px 10px;
+  }
+
+  .bonusBanner span {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .bonusBanner strong {
+    font-size: 20px;
+  }
+
+  .bonusBanner em {
+    margin-top: 3px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
   }
 }

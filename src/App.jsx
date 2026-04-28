@@ -1,506 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-
-const ENGLISH_WORDS = [
-  "APPLE",
-  "BREAD",
-  "CHAIR",
-  "CLOUD",
-  "DREAM",
-  "FRUIT",
-  "GREEN",
-  "HOUSE",
-  "LEMON",
-  "MOUSE",
-  "PIZZA",
-  "RIVER",
-  "SMILE",
-  "TABLE",
-  "TIGER",
-  "TRAIN",
-  "WATER",
-  "ANIMAL",
-  "BANANA",
-  "BOTTLE",
-  "CAMERA",
-  "COOKIE",
-  "FAMILY",
-  "FLOWER",
-  "FRIEND",
-  "GARDEN",
-  "ORANGE",
-  "RABBIT",
-  "SCHOOL",
-  "WINDOW",
-  "BALLOON",
-  "CHICKEN",
-  "COUNTRY",
-  "KITCHEN",
-  "LIBRARY",
-  "MORNING",
-  "PICTURE",
-  "PRESENT",
-  "WEATHER",
-  "BASEBALL",
-  "BIRTHDAY",
-  "ELEPHANT",
-  "NOTEBOOK",
-  "SANDWICH",
-  "SUNSHINE",
-  "BREAKFAST",
-  "CHOCOLATE",
-  "HAMBURGER",
-  "TELEPHONE",
-  "VEGETABLE",
-  "WATERMELON",
-  "PLAYGROUND",
-  "STRAWBERRY",
-  "FRIENDSHIP",
-  "HOUSEPLANT",
-  "RESTAURANT",
-  "SUPERMARKET",
-  "REFRIGERATOR",
-];
-
-const JAPANESE_WORDS = [
-  { prompt: "猫", reading: "ねこ" },
-  { prompt: "犬", reading: "いぬ" },
-  { prompt: "子猫", reading: "こねこ" },
-  { prompt: "子犬", reading: "こいぬ" },
-  { prompt: "りんご", reading: "りんご" },
-  { prompt: "みかん", reading: "みかん" },
-  { prompt: "バナナ", reading: "ばなな" },
-  { prompt: "ごはん", reading: "ごはん" },
-  { prompt: "食パン", reading: "しょくぱん" },
-  { prompt: "牛乳", reading: "ぎゅうにゅう" },
-  { prompt: "学校", reading: "がっこう" },
-  { prompt: "家族", reading: "かぞく" },
-  { prompt: "友達", reading: "ともだち" },
-  { prompt: "公園", reading: "こうえん" },
-  { prompt: "電車", reading: "でんしゃ" },
-  { prompt: "自転車", reading: "じてんしゃ" },
-  { prompt: "花火", reading: "はなび" },
-  { prompt: "青空", reading: "あおぞら" },
-  { prompt: "夕焼け", reading: "ゆうやけ" },
-  { prompt: "朝ごはん", reading: "あさごはん" },
-  { prompt: "おにぎり", reading: "おにぎり" },
-  { prompt: "たまご焼き", reading: "たまごやき" },
-  { prompt: "お味噌汁", reading: "おみそしる" },
-  { prompt: "焼きそば", reading: "やきそば" },
-  { prompt: "お弁当", reading: "おべんとう" },
-  { prompt: "ハムエッグ", reading: "はむえっぐ" },
-  { prompt: "いちご", reading: "いちご" },
-  { prompt: "ぶどう", reading: "ぶどう" },
-  { prompt: "すいか", reading: "すいか" },
-  { prompt: "にんじん", reading: "にんじん" },
-  { prompt: "じゃがいも", reading: "じゃがいも" },
-  { prompt: "玉ねぎ", reading: "たまねぎ" },
-  { prompt: "きゅうり", reading: "きゅうり" },
-  { prompt: "トマト", reading: "とまと" },
-  { prompt: "うさぎ", reading: "うさぎ" },
-  { prompt: "くま", reading: "くま" },
-  { prompt: "きつね", reading: "きつね" },
-  { prompt: "たぬき", reading: "たぬき" },
-  { prompt: "ぞう", reading: "ぞう" },
-  { prompt: "きりん", reading: "きりん" },
-  { prompt: "さかな", reading: "さかな" },
-  { prompt: "ひこうき", reading: "ひこうき" },
-  { prompt: "新幹線", reading: "しんかんせん" },
-  { prompt: "郵便局", reading: "ゆうびんきょく" },
-  { prompt: "図書館", reading: "としょかん" },
-  { prompt: "動物園", reading: "どうぶつえん" },
-  { prompt: "水族館", reading: "すいぞくかん" },
-  { prompt: "遊園地", reading: "ゆうえんち" },
-  { prompt: "おもちゃ箱", reading: "おもちゃばこ" },
-  { prompt: "台所", reading: "だいどころ" },
-  { prompt: "洗濯物", reading: "せんたくもの" },
-  { prompt: "歯ブラシ", reading: "はぶらし" },
-  { prompt: "目覚まし", reading: "めざまし" },
-  { prompt: "運動会", reading: "うんどうかい" },
-  { prompt: "誕生日", reading: "たんじょうび" },
-  { prompt: "夏休み", reading: "なつやすみ" },
-  { prompt: "冬休み", reading: "ふゆやすみ" },
-  { prompt: "お正月", reading: "おしょうがつ" },
-  { prompt: "晩ごはん", reading: "ばんごはん" },
-  { prompt: "お母さん", reading: "おかあさん" },
-  { prompt: "お父さん", reading: "おとうさん" },
-  { prompt: "お兄さん", reading: "おにいさん" },
-  { prompt: "お姉さん", reading: "おねえさん" },
-  { prompt: "おばあさん", reading: "おばあさん" },
-  { prompt: "おじいさん", reading: "おじいさん" },
-  { prompt: "ぬいぐるみ", reading: "ぬいぐるみ" },
-  { prompt: "ランドセル", reading: "らんどせる" },
-  { prompt: "消しゴム", reading: "けしごむ" },
-  { prompt: "えんぴつ", reading: "えんぴつ" },
-  { prompt: "宿題", reading: "しゅくだい" },
-  { prompt: "日曜日", reading: "にちようび" },
-  { prompt: "信号機", reading: "しんごうき" },
-  { prompt: "横断歩道", reading: "おうだんほどう" },
-];
-
-const LANGUAGE_CONFIG = {
-  english: {
-    label: "ENGLISH",
-    shortLabel: "EN",
-  },
-  japanese: {
-    label: "日本語",
-    shortLabel: "日本語",
-  },
-};
-
-const WORD_LENGTH_CYCLE = {
-  cycleSize: 24,
-  growthSpan: 17,
-  burstSpan: 7,
-  minLength: 5,
-  maxLength: 12,
-};
-
-const MODE_CONFIG = {
-  normal: {
-    label: "NORMAL MODE",
-    startEnemies: 1,
-    maxEnemies: 5,
-    maxAsteroids: 5,
-    asteroid: true,
-    enemyBaseInterval: 1540,
-    enemyMinInterval: 680,
-  },
-};
-
-const NO_MISS_BONUS_RULES = {
-  break: {
-    step: 10,
-    majorEvery: 30,
-    baseScore: 900,
-    scoreRamp: 240,
-    majorScore: 760,
-    special: 24,
-    majorSpecial: 10,
-    shield: 8,
-    majorShield: 5,
-    title: "NO MISS",
-    unit: "BREAKS",
-    floater: "NO MISS",
-    detail: "NO-DAMAGE BREAK STREAK",
-    color: "magenta",
-  },
-  typing: {
-    step: 75,
-    majorEvery: 225,
-    baseScore: 650,
-    scoreRamp: 180,
-    majorScore: 550,
-    special: 18,
-    majorSpecial: 8,
-    shield: 5,
-    majorShield: 3,
-    title: "CLEAN TYPE",
-    unit: "KEYS",
-    floater: "CLEAN TYPE",
-    detail: "NO-MISS TYPING STREAK",
-    color: "cyan",
-  },
-};
-
-const BONUS_TIME_CONFIG = {
-  firstMilestone: 100,
-  milestoneStep: 200,
-  maxMisses: 3,
-  maxEnemies: 16,
-  initialEnemies: 10,
-  spawnInterval: 90,
-  baseScore: 1200,
-  scoreRamp: 420,
-};
-
-const initialStats = {
-  score: 0,
-  hp: 100,
-  special: 0,
-  combo: 0,
-  maxCombo: 0,
-  accuracy: 100,
-  wpm: 0,
-  averageLock: 0,
-  breaks: 0,
-  locks: 0,
-  noMissBreaks: 0,
-  noMissKeys: 0,
-  nextNoMissBreakBonus: NO_MISS_BONUS_RULES.break.step,
-  nextNoMissKeyBonus: NO_MISS_BONUS_RULES.typing.step,
-  nextBonusTimeKey: BONUS_TIME_CONFIG.firstMilestone,
-  bonusTimeActive: false,
-  bonusTimeMisses: 0,
-  bonusTimeMaxMisses: BONUS_TIME_CONFIG.maxMisses,
-};
-
-const RANKS = [
-  { name: "S+", threshold: 26000, label: "ACE VECTOR" },
-  { name: "S", threshold: 19000, label: "ZERO MISSILE" },
-  { name: "A", threshold: 12500, label: "CLEAN BREAKER" },
-  { name: "B", threshold: 7600, label: "FIELD LOCKER" },
-  { name: "C", threshold: 3200, label: "ROOKIE PILOT" },
-  { name: "D", threshold: 0, label: "BOOT SEQUENCE" },
-];
-
-const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const random = (min, max) => Math.random() * (max - min) + min;
-const distance = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
-const getPlayfieldBottom = (height) => height - Math.min(170, height * 0.22);
-
-function getNoMissBonus(kind, milestone) {
-  const rule = NO_MISS_BONUS_RULES[kind];
-  const tier = Math.max(1, Math.floor(milestone / rule.step));
-  const major = milestone % rule.majorEvery === 0;
-  const amount = rule.baseScore + (tier - 1) * rule.scoreRamp + (major ? rule.majorScore : 0);
-
-  return { rule, amount, major };
-}
-
-function getBonusTimeReward(milestone) {
-  const tier = Math.max(1, Math.floor((milestone - BONUS_TIME_CONFIG.firstMilestone) / BONUS_TIME_CONFIG.milestoneStep) + 1);
-  return BONUS_TIME_CONFIG.baseScore + (tier - 1) * BONUS_TIME_CONFIG.scoreRamp;
-}
-
-const ROMAJI_MAP = {
-  きゃ: ["kya"],
-  きゅ: ["kyu"],
-  きょ: ["kyo"],
-  しゃ: ["sha", "sya"],
-  しゅ: ["shu", "syu"],
-  しょ: ["sho", "syo"],
-  ちゃ: ["cha", "tya", "cya"],
-  ちゅ: ["chu", "tyu", "cyu"],
-  ちょ: ["cho", "tyo", "cyo"],
-  にゃ: ["nya"],
-  にゅ: ["nyu"],
-  にょ: ["nyo"],
-  ひゃ: ["hya"],
-  ひゅ: ["hyu"],
-  ひょ: ["hyo"],
-  みゃ: ["mya"],
-  みゅ: ["myu"],
-  みょ: ["myo"],
-  りゃ: ["rya"],
-  りゅ: ["ryu"],
-  りょ: ["ryo"],
-  ぎゃ: ["gya"],
-  ぎゅ: ["gyu"],
-  ぎょ: ["gyo"],
-  じゃ: ["ja", "jya", "zya"],
-  じゅ: ["ju", "jyu", "zyu"],
-  じょ: ["jo", "jyo", "zyo"],
-  びゃ: ["bya"],
-  びゅ: ["byu"],
-  びょ: ["byo"],
-  ぴゃ: ["pya"],
-  ぴゅ: ["pyu"],
-  ぴょ: ["pyo"],
-  ふぁ: ["fa"],
-  ふぃ: ["fi"],
-  ふぇ: ["fe"],
-  ふぉ: ["fo"],
-  うぃ: ["wi"],
-  うぇ: ["we"],
-  あ: ["a"],
-  い: ["i"],
-  う: ["u"],
-  え: ["e"],
-  お: ["o"],
-  か: ["ka"],
-  き: ["ki"],
-  く: ["ku"],
-  け: ["ke"],
-  こ: ["ko"],
-  さ: ["sa"],
-  し: ["shi", "si"],
-  す: ["su"],
-  せ: ["se"],
-  そ: ["so"],
-  た: ["ta"],
-  ち: ["chi", "ti"],
-  つ: ["tsu", "tu"],
-  て: ["te"],
-  と: ["to"],
-  な: ["na"],
-  に: ["ni"],
-  ぬ: ["nu"],
-  ね: ["ne"],
-  の: ["no"],
-  は: ["ha"],
-  ひ: ["hi"],
-  ふ: ["fu", "hu"],
-  へ: ["he"],
-  ほ: ["ho"],
-  ま: ["ma"],
-  み: ["mi"],
-  む: ["mu"],
-  め: ["me"],
-  も: ["mo"],
-  や: ["ya"],
-  ゆ: ["yu"],
-  よ: ["yo"],
-  ら: ["ra"],
-  り: ["ri"],
-  る: ["ru"],
-  れ: ["re"],
-  ろ: ["ro"],
-  わ: ["wa"],
-  を: ["wo", "o"],
-  が: ["ga"],
-  ぎ: ["gi"],
-  ぐ: ["gu"],
-  げ: ["ge"],
-  ご: ["go"],
-  ざ: ["za"],
-  じ: ["ji", "zi"],
-  ず: ["zu"],
-  ぜ: ["ze"],
-  ぞ: ["zo"],
-  だ: ["da"],
-  ぢ: ["ji", "di"],
-  づ: ["zu", "du"],
-  で: ["de"],
-  ど: ["do"],
-  ば: ["ba"],
-  び: ["bi"],
-  ぶ: ["bu"],
-  べ: ["be"],
-  ぼ: ["bo"],
-  ぱ: ["pa"],
-  ぴ: ["pi"],
-  ぷ: ["pu"],
-  ぺ: ["pe"],
-  ぽ: ["po"],
-  ー: ["-"],
-};
-
-function uniqueOptions(values) {
-  return [...new Set(values)].slice(0, 96);
-}
-
-function buildRomajiOptions(reading) {
-  const build = (index) => {
-    if (index >= reading.length) return [""];
-
-    const char = reading[index];
-    if (char === "っ") {
-      return build(index + 1).flatMap((rest) => {
-        const head = rest[0];
-        return head && /[bcdfghjklmpqrstvwxyz]/.test(head) ? [head + rest, `xtsu${rest}`, `ltsu${rest}`] : [`xtsu${rest}`, `ltsu${rest}`];
-      });
-    }
-
-    if (char === "ん") {
-      return build(index + 1).flatMap((rest) => {
-        const next = rest[0];
-        const needsApostrophe = next && /^[aiueoyn]/.test(next);
-        return needsApostrophe ? [`n'${rest}`, `nn${rest}`, `xn${rest}`] : [`n${rest}`, `nn${rest}`, `xn${rest}`];
-      });
-    }
-
-    const pair = reading.slice(index, index + 2);
-    const pairOptions = ROMAJI_MAP[pair];
-    if (pairOptions) {
-      return pairOptions.flatMap((part) => build(index + 2).map((rest) => part + rest));
-    }
-
-    const options = ROMAJI_MAP[char] ?? [char];
-    return options.flatMap((part) => build(index + 1).map((rest) => part + rest));
-  };
-
-  return uniqueOptions(build(0));
-}
-
-function getEnemyPacing(breaks = 0) {
-  const safeBreaks = Math.max(0, breaks);
-  const cycle = WORD_LENGTH_CYCLE.cycleSize;
-  const phase = safeBreaks % cycle;
-  const loop = Math.floor(safeBreaks / cycle);
-  const inBurst = phase >= WORD_LENGTH_CYCLE.growthSpan;
-  const burstPhase = inBurst ? phase - WORD_LENGTH_CYCLE.growthSpan : 0;
-  const growthRatio = inBurst ? 0 : clamp(phase / (WORD_LENGTH_CYCLE.growthSpan - 1), 0, 1);
-  const longTarget = Math.round(
-    WORD_LENGTH_CYCLE.minLength + (WORD_LENGTH_CYCLE.maxLength - WORD_LENGTH_CYCLE.minLength) * growthRatio,
-  );
-  const shortBurstTarget = WORD_LENGTH_CYCLE.minLength + Math.min(2, Math.floor(burstPhase / 2));
-  const targetLength = inBurst ? shortBurstTarget : longTarget;
-  const loopBoost = Math.min(0.22, loop * 0.045);
-  const burstBoost = inBurst ? 0.14 + (burstPhase / Math.max(1, WORD_LENGTH_CYCLE.burstSpan - 1)) * 0.1 : 0;
-  const enemyLimitBonus = Math.min(2, loop + (inBurst ? 1 : 0));
-
-  return {
-    targetLength,
-    lengthTolerance: inBurst ? 1 : 2 + Math.min(1, Math.floor(loop / 2)),
-    speedMultiplier: 1 + loopBoost + burstBoost,
-    spawnIntervalMultiplier: 1 - Math.min(0.42, loopBoost * 0.82 + burstBoost * 0.62),
-    enemyLimitBonus,
-  };
-}
-
-const JAPANESE_WORD_ENTRIES = JAPANESE_WORDS.map((item) => {
-  const answerOptions = buildRomajiOptions(item.reading);
-  return {
-    prompt: item.prompt,
-    reading: item.reading,
-    answerOptions,
-    minInputLength: Math.min(...answerOptions.map((option) => option.length)),
-    language: "japanese",
-  };
-});
-
-const ENGLISH_WORD_ENTRIES = ENGLISH_WORDS.map((word) => ({
-  prompt: word,
-  reading: word,
-  answerOptions: [word.toLowerCase()],
-  minInputLength: word.length,
-  language: "english",
-}));
-
-function createWordEntry(language, breaks = 0) {
-  const pacing = getEnemyPacing(breaks);
-  const pool = language === "japanese" ? JAPANESE_WORD_ENTRIES : ENGLISH_WORD_ENTRIES;
-  const candidates = pool.filter(
-    (item) => Math.abs(item.minInputLength - pacing.targetLength) <= pacing.lengthTolerance,
-  );
-  const pickFrom = candidates.length ? candidates : pool;
-  const picked = pickFrom[Math.floor(Math.random() * pickFrom.length)];
-
-  return {
-    prompt: picked.prompt,
-    reading: picked.reading,
-    answerOptions: picked.answerOptions,
-    language,
-  };
-}
-
-function getRank(stats) {
-  if (stats.breaks === 0) return RANKS[RANKS.length - 1];
-
-  const accuracyBonus = Math.max(0, stats.accuracy - 80) * 45;
-  const speedBonus = Math.min(2600, stats.wpm * 18);
-  const comboBonus = Math.min(5200, stats.maxCombo * 155);
-  const clearBonus = Math.min(3600, stats.breaks * 55);
-  const rating = stats.score + accuracyBonus + speedBonus + comboBonus + clearBonus;
-
-  return RANKS.find((rank) => rating >= rank.threshold) ?? RANKS[RANKS.length - 1];
-}
-
-function getShareUrl(result) {
-  const { rank, stats } = result;
-  const text = [
-    "LOCK TYPE SHOOTERで遊びました！",
-    `スコア：${stats.score.toLocaleString()}点`,
-    `ランク：${rank.name}（${rank.label}）`,
-    `最大コンボ：${stats.maxCombo}`,
-    `正確率：${stats.accuracy}% / WPM：${stats.wpm}`,
-    "照準とタイピングで迫る敵を撃ち落とす反応トレーニングゲームです。",
-    "#LockTypeShooter",
-  ].join("\n");
-
-  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-}
+import { GameHud } from "./components/GameHud";
+import { ResultOverlay } from "./components/ResultOverlay";
+import { TargetPanel } from "./components/TargetPanel";
+import { TitleOverlay } from "./components/TitleOverlay";
+import {
+  BONUS_TIME_CONFIG,
+  MODE_CONFIG,
+  NO_MISS_BONUS_RULES,
+  getBonusTimeReward,
+  getNoMissBonus,
+  getRank,
+  initialStats,
+} from "./game/gameConfig";
+import { createAudioEngine, playSfx as playAudioSfx, startBgm, stopBgm } from "./game/audio";
+import { clamp, distance, getPlayfieldBottom, random } from "./game/math";
+import {
+  LANGUAGE_CONFIG,
+  WORD_LENGTH_CYCLE,
+  createWordEntry,
+  getEnemyPacing,
+} from "./game/typingConfig";
 
 function blurActiveControl() {
   if (document.activeElement instanceof HTMLElement) {
@@ -583,40 +102,15 @@ function App() {
 
   const currentModeConfig = useMemo(() => MODE_CONFIG[mode], [mode]);
 
-  const makeNoiseBuffer = (ctx) => {
-    const length = Math.floor(ctx.sampleRate * 0.45);
-    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-
-    for (let i = 0; i < length; i += 1) {
-      data[i] = Math.random() * 2 - 1;
-    }
-
-    return buffer;
-  };
-
   const getAudioEngine = (force = false) => {
     if (!force && !soundEnabledRef.current) return null;
-    if (typeof window === "undefined") return null;
-
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return null;
 
     if (!audioRef.current) {
-      const ctx = new AudioContextClass();
-      const master = ctx.createGain();
-      const compressor = ctx.createDynamicsCompressor();
-      master.gain.value = 0.24;
-      master.connect(compressor);
-      compressor.connect(ctx.destination);
-      audioRef.current = {
-        ctx,
-        master,
-        noiseBuffer: makeNoiseBuffer(ctx),
-      };
+      audioRef.current = createAudioEngine();
     }
 
     const engine = audioRef.current;
+    if (!engine) return null;
     if (engine.ctx.state === "suspended") {
       void engine.ctx.resume();
     }
@@ -626,114 +120,7 @@ function App() {
 
   const playSfx = (name, options = {}) => {
     const engine = getAudioEngine();
-    if (!engine) return;
-
-    const { ctx, master, noiseBuffer } = engine;
-    const now = ctx.currentTime;
-    const amount = options.amount ?? 1;
-
-    const tone = (frequency, duration, config = {}) => {
-      const start = now + (config.delay ?? 0);
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = config.type ?? "sine";
-      osc.frequency.setValueAtTime(Math.max(20, frequency), start);
-      if (config.to) {
-        osc.frequency.exponentialRampToValueAtTime(Math.max(20, config.to), start + duration);
-      }
-      if (config.detune) {
-        osc.detune.setValueAtTime(config.detune, start);
-      }
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(config.gain ?? 0.05, start + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-      osc.connect(gain);
-      gain.connect(master);
-      osc.start(start);
-      osc.stop(start + duration + 0.03);
-    };
-
-    const noise = (duration, config = {}) => {
-      const start = now + (config.delay ?? 0);
-      const source = ctx.createBufferSource();
-      const filter = ctx.createBiquadFilter();
-      const gain = ctx.createGain();
-      source.buffer = noiseBuffer;
-      filter.type = config.filterType ?? "bandpass";
-      filter.frequency.setValueAtTime(config.frequency ?? 1200, start);
-      filter.Q.value = config.q ?? 1.6;
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(config.gain ?? 0.04, start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-      source.connect(filter);
-      filter.connect(gain);
-      gain.connect(master);
-      source.start(start);
-      source.stop(start + duration + 0.03);
-    };
-
-    switch (name) {
-      case "start":
-        tone(220, 0.14, { to: 440, type: "triangle", gain: 0.045 });
-        tone(330, 0.18, { to: 660, type: "sine", gain: 0.034, delay: 0.08 });
-        break;
-      case "lock":
-        tone(520, 0.08, { to: 980, type: "square", gain: 0.034 });
-        tone(1040, 0.06, { to: 780, type: "sine", gain: 0.028, delay: 0.05 });
-        break;
-      case "unlock":
-        tone(440, 0.1, { to: 240, type: "triangle", gain: 0.03 });
-        break;
-      case "type":
-        tone(780 + Math.min(260, amount * 12), 0.035, { to: 1180 + Math.min(220, amount * 10), type: "triangle", gain: 0.018 });
-        break;
-      case "break":
-        tone(160, 0.16, { to: 70, type: "sawtooth", gain: 0.05 });
-        tone(620, 0.12, { to: 1320, type: "triangle", gain: 0.042 });
-        noise(0.16, { frequency: 1600, gain: 0.035 });
-        break;
-      case "chain":
-        tone(540, 0.08, { to: 820, type: "triangle", gain: 0.032 });
-        tone(720, 0.08, { to: 1080, type: "triangle", gain: 0.032, delay: 0.07 });
-        tone(920, 0.1, { to: 1460, type: "sine", gain: 0.034, delay: 0.14 });
-        break;
-      case "miss":
-        tone(190, 0.2, { to: 64, type: "sawtooth", gain: 0.052 });
-        noise(0.18, { filterType: "lowpass", frequency: 720, gain: 0.04 });
-        break;
-      case "deny":
-        tone(220, 0.08, { to: 160, type: "square", gain: 0.026 });
-        tone(170, 0.08, { to: 120, type: "square", gain: 0.024, delay: 0.07 });
-        break;
-      case "ready":
-        tone(440, 0.14, { to: 660, type: "sine", gain: 0.034 });
-        tone(660, 0.16, { to: 990, type: "triangle", gain: 0.035, delay: 0.08 });
-        tone(990, 0.2, { to: 1320, type: "sine", gain: 0.034, delay: 0.16 });
-        break;
-      case "bonus":
-        tone(520, 0.1, { to: 780, type: "triangle", gain: 0.038 });
-        tone(780, 0.12, { to: 1170, type: "triangle", gain: 0.038, delay: 0.08 });
-        tone(options.major ? 1320 : 980, 0.22, { to: options.major ? 1980 : 1480, type: "sine", gain: options.major ? 0.046 : 0.034, delay: 0.16 });
-        if (options.major) noise(0.24, { frequency: 2600, gain: 0.03, delay: 0.04 });
-        break;
-      case "rush":
-        tone(260, 0.12, { to: 520, type: "sawtooth", gain: 0.044 });
-        tone(520, 0.18, { to: 1560, type: "triangle", gain: 0.046, delay: 0.07 });
-        noise(0.22, { frequency: 3000, gain: 0.026, delay: 0.04 });
-        break;
-      case "rushEnd":
-        tone(520, 0.12, { to: 220, type: "triangle", gain: 0.034 });
-        tone(260, 0.16, { to: 110, type: "sine", gain: 0.028, delay: 0.08 });
-        break;
-      case "overdrive":
-        tone(90, 0.34, { to: 48, type: "sawtooth", gain: 0.064 });
-        tone(420, 0.42, { to: 1800, type: "triangle", gain: 0.052 });
-        tone(820, 0.34, { to: 2400, type: "sine", gain: 0.04, delay: 0.1 });
-        noise(0.32, { frequency: 2200, gain: 0.05 });
-        break;
-      default:
-        break;
-    }
+    playAudioSfx(engine, name, options);
   };
 
   const toggleSound = () => {
@@ -742,10 +129,15 @@ function App() {
     setSoundEnabled(next);
 
     if (next) {
-      getAudioEngine(true);
+      const engine = getAudioEngine(true);
+      const s = stateRef.current;
+      if (s.running && !s.over) startBgm(engine);
       window.setTimeout(() => playSfx("start"), 0);
-    } else if (audioRef.current?.ctx?.state === "running") {
-      void audioRef.current.ctx.suspend();
+    } else if (audioRef.current) {
+      stopBgm(audioRef.current);
+      if (audioRef.current.ctx.state === "running") {
+        void audioRef.current.ctx.suspend();
+      }
     }
   };
 
@@ -1207,6 +599,7 @@ function App() {
     const s = stateRef.current;
     s.over = true;
     s.lockedId = null;
+    stopBgm(audioRef.current);
     const finalStats = computeStats();
     const rank = getRank(finalStats);
 
@@ -1398,7 +791,8 @@ function App() {
 
   const startTraining = (nextMode = "normal", nextLanguage = language) => {
     blurActiveControl();
-    getAudioEngine();
+    const engine = getAudioEngine();
+    startBgm(engine);
     playSfx("start");
     setMode(nextMode);
     setLanguage(nextLanguage);
@@ -2138,6 +1532,7 @@ function App() {
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      stopBgm(audioRef.current);
       window.cancelAnimationFrame(animationRef.current);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
@@ -2176,169 +1571,39 @@ function App() {
         </span>
       </div>
 
-      <header className="hud">
-        <section className="logoPanel">
-          <div className="logoMain">LOCK TYPE SHOOTER</div>
-          <div className="logoSub">
-            {LANGUAGE_CONFIG[language].shortLabel} / DESKTOP SHOOTING TRAINER
-          </div>
-        </section>
+      <GameHud
+        language={language}
+        stats={stats}
+        bonusTimeActive={bonusTimeActive}
+        soundEnabled={soundEnabled}
+        onToggleSound={toggleSound}
+      />
 
-        <section className="stats">
-          <HudValue label="SCORE" value={String(stats.score).padStart(6, "0")} />
-          <HudValue label="COMBO" value={stats.combo} tone="orange" />
-          <HudValue label="ACC" value={`${stats.accuracy}%`} />
-          <HudValue label="WPM" value={stats.wpm} />
-          <HudValue label="LOCK" value={stats.averageLock.toFixed(2)} />
-          <HudValue label="NM BREAK" value={`${stats.noMissBreaks}/${stats.nextNoMissBreakBonus}`} tone="bonus" />
-          <HudValue label="NM TYPE" value={`${stats.noMissKeys}/${stats.nextNoMissKeyBonus}`} tone="bonus" />
-          <HudValue
-            label="RUSH"
-            value={bonusTimeActive ? `${stats.bonusTimeMisses}/${stats.bonusTimeMaxMisses}` : `@${stats.nextBonusTimeKey}`}
-            tone={bonusTimeActive ? "rush" : "bonus"}
-          />
-        </section>
-
-        <section className={`shieldPanel ${stats.special >= 100 ? "overdriveReady" : ""}`}>
-          <span className="hudLabel">SHIELD</span>
-          <div className="shieldBar">
-            <div
-              className={`shieldFill ${stats.hp < 30 ? "critical" : ""}`}
-              style={{ width: `${stats.hp}%` }}
-            />
-          </div>
-          <span className="hudLabel specialLabel">OVERDRIVE</span>
-          <span className="overdriveValue">{stats.special >= 100 ? "READY / SPACE" : `${stats.special}%`}</span>
-          <div className="specialBar">
-            <div
-              className={`specialFill ${stats.special >= 100 ? "ready" : ""}`}
-              style={{ width: `${stats.special}%` }}
-            />
-          </div>
-        </section>
-      </header>
-
-      <button className={`soundToggle ${soundEnabled ? "on" : "off"}`} type="button" onClick={toggleSound}>
-        SFX {soundEnabled ? "ON" : "OFF"}
-      </button>
-
-      <section className={`targetPanel ${target ? "locked" : "idle"} ${bonusTimeActive ? "bonusMode" : ""}`}>
-        <div className="targetTop">
-          <span className="lockBadge">{bonusTimeActive ? "BONUS TIME" : target ? "LOCKED" : "NO LOCK"}</span>
-          <span className="targetName">
-            {bonusTimeActive
-              ? `CLICK TARGETS TO BREAK / MISS ${stats.bonusTimeMisses}/${stats.bonusTimeMaxMisses}`
-              : target
-                ? `${target.name} / ${activeAnswer.length} KEYS / ${LANGUAGE_CONFIG[target.language].label}`
-                : "CLICK A TARGET TO START TYPING"}
-          </span>
-        </div>
-
-        {target?.language === "japanese" && (
-          <div className="jpPrompt">
-            <strong>{target.prompt}</strong>
-            <span>{target.reading}</span>
-          </div>
-        )}
-
-        <div className="wordDisplay">
-          {bonusTimeActive ? (
-            <span className="bonusTimeText">CLICK BREAK RUSH</span>
-          ) : target ? (
-            <>
-              {target.language === "english" && <span className="promptGhost">{target.prompt}</span>}
-              <span className="typed">{typed.toUpperCase()}</span>
-              <span className="next">{next.toUpperCase() || " "}</span>
-              <span className="rest">{rest.toUpperCase()}</span>
-            </>
-          ) : (
-            <span className="idleText">STANDBY</span>
-          )}
-        </div>
-
-        <div className="progressRow">
-          <div className="progressBar">
-            <div className="progressFill" style={{ width: `${dockProgress}%` }} />
-          </div>
-          <span>
-            {bonusTimeActive
-              ? `MISS ${stats.bonusTimeMisses}/${stats.bonusTimeMaxMisses}`
-              : `${progress}%`}
-          </span>
-        </div>
-      </section>
+      <TargetPanel
+        target={target}
+        bonusTimeActive={bonusTimeActive}
+        stats={stats}
+        activeAnswer={activeAnswer}
+        typed={typed}
+        next={next}
+        rest={rest}
+        dockProgress={dockProgress}
+        progress={progress}
+      />
 
       {phase === "title" && (
-        <Overlay>
-          <div className="kicker">MOUSE / TRACKBALL × KEYBOARD</div>
-          <h1 className="title">
-            LOCK
-            <br />
-            TYPE
-            <br />
-            SHOOTER
-          </h1>
-          <p className="description">
-            上から接近するターゲットをマウスやトラックボールで捕捉し、クリックでロック。
-            <br />
-            英語と日本語ローマ字入力を切り替え、隕石を避けながら精度と連続撃破でランクを伸ばす。
-          </p>
-          <div className="languageSwitch" aria-label="Typing language">
-            {Object.entries(LANGUAGE_CONFIG).map(([key, config]) => (
-              <button
-                className={language === key ? "active" : ""}
-                key={key}
-                onClick={() => setLanguage(key)}
-              >
-                {config.label}
-              </button>
-            ))}
-          </div>
-          <div className="buttonRow">
-            <button onClick={() => startTraining("normal", language)}>スタート</button>
-          </div>
-          <div className="keyHints">
-            <span>Mouse: aim</span>
-            <span>Click: lock</span>
-            <span>Keyboard: type</span>
-            <span>ESC: unlock</span>
-            <span>Space: overdrive</span>
-            <span>F2: restart</span>
-          </div>
-        </Overlay>
+        <TitleOverlay
+          language={language}
+          onLanguageChange={setLanguage}
+          onStart={(nextLanguage) => startTraining("normal", nextLanguage)}
+        />
       )}
 
       {phase === "result" && result && (
-        <Overlay>
-          <div className="kicker">TRAINING RESULT</div>
-          <h1 className="title small">{result.title}</h1>
-          <p className="description">{result.message}</p>
-
-          <div className="rankPlate">
-            <span>RANK</span>
-            <strong>{result.rank.name}</strong>
-            <em>{result.rank.label}</em>
-          </div>
-
-          <div className="resultGrid">
-            <Metric label="SCORE" value={result.stats.score.toLocaleString()} />
-            <Metric label="RANK" value={result.rank.name} />
-            <Metric label="MAX COMBO" value={result.stats.maxCombo} />
-            <Metric label="ACCURACY" value={`${result.stats.accuracy}%`} />
-            <Metric label="WPM" value={result.stats.wpm} />
-            <Metric label="AVG LOCK" value={`${result.stats.averageLock.toFixed(2)}s`} />
-            <Metric label="NO MISS BREAK" value={result.stats.noMissBreaks} />
-            <Metric label="NO MISS TYPE" value={result.stats.noMissKeys} />
-            <Metric label="BREAKS" value={result.stats.breaks} />
-          </div>
-
-          <div className="buttonRow">
-            <button onClick={() => startTraining(stateRef.current.mode, stateRef.current.language)}>RETRY</button>
-            <a className="shareButton" href={getShareUrl(result)} target="_blank" rel="noreferrer">
-              Xに投稿
-            </a>
-          </div>
-        </Overlay>
+        <ResultOverlay
+          result={result}
+          onRetry={() => startTraining(stateRef.current.mode, stateRef.current.language)}
+        />
       )}
 
       {notice && <div className={`notice ${notice.type}`}>{notice.text}</div>}
@@ -2361,32 +1626,6 @@ function App() {
         {currentModeConfig.label} / {LANGUAGE_CONFIG[language].label}
       </div>
     </main>
-  );
-}
-
-function HudValue({ label, value, tone = "" }) {
-  return (
-    <div className={`hudItem ${tone}`}>
-      <span className="hudLabel">{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function Metric({ label, value }) {
-  return (
-    <div className="metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function Overlay({ children }) {
-  return (
-    <section className="overlay">
-      <div className="menuCard">{children}</div>
-    </section>
   );
 }
 
