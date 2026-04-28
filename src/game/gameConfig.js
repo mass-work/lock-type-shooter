@@ -47,13 +47,13 @@ export const NO_MISS_BONUS_RULES = {
 
 export const BONUS_TIME_CONFIG = {
   firstMilestone: 75,
-  milestoneStep: 200,
+  milestoneStep: 100,
   maxMisses: 3,
   maxEnemies: 16,
   initialEnemies: 10,
   spawnInterval: 90,
-  baseScore: 1200,
-  scoreRamp: 420,
+  baseScore: 1000,
+  scoreRamp: 300,
 };
 
 export const initialStats = {
@@ -118,18 +118,17 @@ export function getRank(stats) {
 export function getShareUrl(result) {
   const { rank, stats } = result;
   const text = [
-    "LOCK TYPE SHOOTERで遊びました！",
+    "タイピング＆ポインティング練習アプリ",
+    "LOCK TYPE SHOOTERで遊びました。",
     `スコア：${stats.score.toLocaleString()}点`,
     `ランク：${rank.name}（${rank.label}）`,
     `最大コンボ：${stats.maxCombo}`,
     `正確率：${stats.accuracy}% / WPM：${stats.wpm}`,
-    "照準とタイピングで迫る敵を撃ち落とす反応トレーニングゲームです。",
     "#LockTypeShooter",
   ].join("\n");
 
   const params = new URLSearchParams({
     text,
-    url: SHARE_PAGE_URL,
   });
 
   return `https://twitter.com/intent/tweet?${params.toString()}`;
