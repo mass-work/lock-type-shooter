@@ -2,12 +2,12 @@
 
 LOCK TYPE SHOOTER is a browser-based pointing and typing trainer built with Vite and React.
 
-Aim with a mouse or trackball, click to lock a target, then type the displayed word to shoot it down. The game supports English typing and Japanese romaji typing, including multiple valid romaji patterns.
+Aim with a mouse or trackball, click to lock a target, then type the displayed word to shoot it down. The game supports familiar English words and Japanese romaji typing, including multiple valid romaji patterns.
 
 ## Features
 
 - Lock-on pointing practice with mouse or trackball
-- English and expanded Japanese romaji typing modes
+- Familiar English and Japanese word pools that grow from short words into longer words before cycling back
 - Dedicated typing dock separated from the playfield
 - Synthesized Web Audio sound effects
 - Funnel-style enemy approach, varied asteroid paths, combo scoring, no-miss milestone bonuses, miss-ended bonus time rushes, rank results, and overdrive clears

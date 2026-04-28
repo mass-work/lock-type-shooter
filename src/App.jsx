@@ -1,151 +1,140 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const ENGLISH_WORDS = [
-  "OMNI",
-  "TRACKBALL",
-  "POINTER",
-  "KEYBOARD",
-  "GESTURE",
-  "SCROLL",
-  "MACRO",
-  "DISPLAY",
-  "SENSOR",
-  "VECTOR",
-  "TYPING",
-  "LAYOUT",
-  "CUSTOM",
-  "SWITCH",
-  "FIRMWARE",
-  "MATRIX",
-  "MOTION",
-  "CURSOR",
-  "ORBITAL",
-  "CONTROL",
-  "LAYER",
-  "PROFILE",
-  "PRECISION",
-  "HAPTIC",
-  "QUANTUM",
-  "PAINTER",
-  "VIAL",
-  "QMK",
-  "LOCKON",
-  "DRAG",
-  "AIM",
-  "TARGET",
-  "BOOST",
-  "STRIKE",
-  "BURST",
-  "LASER",
-  "SHIELD",
-  "PULSE",
-  "MISSION",
+  "APPLE",
+  "BREAD",
+  "CHAIR",
+  "CLOUD",
+  "DREAM",
+  "FRUIT",
+  "GREEN",
+  "HOUSE",
+  "LEMON",
+  "MOUSE",
+  "PIZZA",
+  "RIVER",
+  "SMILE",
+  "TABLE",
+  "TIGER",
+  "TRAIN",
+  "WATER",
+  "ANIMAL",
+  "BANANA",
+  "BOTTLE",
+  "CAMERA",
+  "COOKIE",
+  "FAMILY",
+  "FLOWER",
+  "FRIEND",
+  "GARDEN",
+  "ORANGE",
+  "RABBIT",
+  "SCHOOL",
+  "WINDOW",
+  "BALLOON",
+  "CHICKEN",
+  "COUNTRY",
+  "KITCHEN",
+  "LIBRARY",
+  "MORNING",
+  "PICTURE",
+  "PRESENT",
+  "WEATHER",
+  "BASEBALL",
+  "BIRTHDAY",
+  "ELEPHANT",
+  "NOTEBOOK",
+  "SANDWICH",
+  "SUNSHINE",
+  "BREAKFAST",
+  "CHOCOLATE",
+  "HAMBURGER",
+  "TELEPHONE",
+  "VEGETABLE",
+  "WATERMELON",
+  "PLAYGROUND",
+  "STRAWBERRY",
+  "FRIENDSHIP",
+  "HOUSEPLANT",
+  "RESTAURANT",
+  "SUPERMARKET",
+  "REFRIGERATOR",
 ];
 
 const JAPANESE_WORDS = [
-  { prompt: "照準", reading: "しょうじゅん" },
-  { prompt: "京都", reading: "きょうと" },
-  { prompt: "東京", reading: "とうきょう" },
-  { prompt: "入力", reading: "にゅうりょく" },
-  { prompt: "射撃", reading: "しゃげき" },
-  { prompt: "連続", reading: "れんぞく" },
-  { prompt: "加速", reading: "かそく" },
-  { prompt: "回避", reading: "かいひ" },
-  { prompt: "宇宙", reading: "うちゅう" },
-  { prompt: "隕石", reading: "いんせき" },
-  { prompt: "防御", reading: "ぼうぎょ" },
-  { prompt: "成功", reading: "せいこう" },
-  { prompt: "集中", reading: "しゅうちゅう" },
-  { prompt: "速度", reading: "そくど" },
-  { prompt: "反応", reading: "はんのう" },
-  { prompt: "制御", reading: "せいぎょ" },
-  { prompt: "作戦", reading: "さくせん" },
-  { prompt: "補足", reading: "ほそく" },
-  { prompt: "突破", reading: "とっぱ" },
-  { prompt: "信号", reading: "しんごう" },
-  { prompt: "照射", reading: "しょうしゃ" },
-  { prompt: "追跡", reading: "ついせき" },
-  { prompt: "誘導", reading: "ゆうどう" },
-  { prompt: "敵影", reading: "てきえい" },
-  { prompt: "機雷", reading: "きらい" },
-  { prompt: "軌道", reading: "きどう" },
-  { prompt: "航路", reading: "こうろ" },
-  { prompt: "発射", reading: "はっしゃ" },
-  { prompt: "弾幕", reading: "だんまく" },
-  { prompt: "爆発", reading: "ばくはつ" },
-  { prompt: "回復", reading: "かいふく" },
-  { prompt: "修復", reading: "しゅうふく" },
-  { prompt: "解析", reading: "かいせき" },
-  { prompt: "確認", reading: "かくにん" },
-  { prompt: "監視", reading: "かんし" },
-  { prompt: "警戒", reading: "けいかい" },
-  { prompt: "緊急", reading: "きんきゅう" },
-  { prompt: "脱出", reading: "だっしゅつ" },
-  { prompt: "離脱", reading: "りだつ" },
-  { prompt: "追撃", reading: "ついげき" },
-  { prompt: "命中", reading: "めいちゅう" },
-  { prompt: "偏差", reading: "へんさ" },
-  { prompt: "視界", reading: "しかい" },
-  { prompt: "照合", reading: "しょうごう" },
-  { prompt: "起動", reading: "きどう" },
-  { prompt: "停止", reading: "ていし" },
-  { prompt: "再起", reading: "さいき" },
-  { prompt: "遠隔", reading: "えんかく" },
-  { prompt: "近接", reading: "きんせつ" },
-  { prompt: "主砲", reading: "しゅほう" },
-  { prompt: "副砲", reading: "ふくほう" },
-  { prompt: "兵装", reading: "へいそう" },
-  { prompt: "装甲", reading: "そうこう" },
-  { prompt: "船体", reading: "せんたい" },
-  { prompt: "艦橋", reading: "かんきょう" },
-  { prompt: "推進", reading: "すいしん" },
-  { prompt: "噴射", reading: "ふんしゃ" },
-  { prompt: "姿勢", reading: "しせい" },
-  { prompt: "同期", reading: "どうき" },
-  { prompt: "遅延", reading: "ちえん" },
-  { prompt: "補給", reading: "ほきゅう" },
-  { prompt: "護衛", reading: "ごえい" },
-  { prompt: "迎撃", reading: "げいげき" },
-  { prompt: "偵察", reading: "ていさつ" },
-  { prompt: "予測", reading: "よそく" },
-  { prompt: "命令", reading: "めいれい" },
-  { prompt: "連携", reading: "れんけい" },
-  { prompt: "確保", reading: "かくほ" },
-  { prompt: "圧縮", reading: "あっしゅく" },
-  { prompt: "展開", reading: "てんかい" },
-  { prompt: "反転", reading: "はんてん" },
-  { prompt: "包囲", reading: "ほうい" },
-  { prompt: "乱射", reading: "らんしゃ" },
-  { prompt: "狙撃", reading: "そげき" },
-  { prompt: "補正", reading: "ほせい" },
-  { prompt: "低速", reading: "ていそく" },
-  { prompt: "高速", reading: "こうそく" },
-  { prompt: "精密", reading: "せいみつ" },
-  { prompt: "瞬間", reading: "しゅんかん" },
-  { prompt: "収束", reading: "しゅうそく" },
-  { prompt: "放電", reading: "ほうでん" },
-  { prompt: "雷撃", reading: "らいげき" },
-  { prompt: "熱源", reading: "ねつげん" },
-  { prompt: "走査", reading: "そうさ" },
-  { prompt: "深度", reading: "しんど" },
-  { prompt: "座標", reading: "ざひょう" },
-  { prompt: "旋回", reading: "せんかい" },
-  { prompt: "航行", reading: "こうこう" },
-  { prompt: "探知", reading: "たんち" },
-  { prompt: "受信", reading: "じゅしん" },
-  { prompt: "送信", reading: "そうしん" },
-  { prompt: "暗号", reading: "あんごう" },
-  { prompt: "障壁", reading: "しょうへき" },
-  { prompt: "重力", reading: "じゅうりょく" },
-  { prompt: "真空", reading: "しんくう" },
-  { prompt: "流星", reading: "りゅうせい" },
-  { prompt: "銀河", reading: "ぎんが" },
-  { prompt: "恒星", reading: "こうせい" },
-  { prompt: "衛星", reading: "えいせい" },
-  { prompt: "光学", reading: "こうがく" },
-  { prompt: "量子", reading: "りょうし" },
-  { prompt: "電磁", reading: "でんじ" },
-  { prompt: "反射", reading: "はんしゃ" },
+  { prompt: "猫", reading: "ねこ" },
+  { prompt: "犬", reading: "いぬ" },
+  { prompt: "子猫", reading: "こねこ" },
+  { prompt: "子犬", reading: "こいぬ" },
+  { prompt: "りんご", reading: "りんご" },
+  { prompt: "みかん", reading: "みかん" },
+  { prompt: "バナナ", reading: "ばなな" },
+  { prompt: "ごはん", reading: "ごはん" },
+  { prompt: "食パン", reading: "しょくぱん" },
+  { prompt: "牛乳", reading: "ぎゅうにゅう" },
+  { prompt: "学校", reading: "がっこう" },
+  { prompt: "家族", reading: "かぞく" },
+  { prompt: "友達", reading: "ともだち" },
+  { prompt: "公園", reading: "こうえん" },
+  { prompt: "電車", reading: "でんしゃ" },
+  { prompt: "自転車", reading: "じてんしゃ" },
+  { prompt: "花火", reading: "はなび" },
+  { prompt: "青空", reading: "あおぞら" },
+  { prompt: "夕焼け", reading: "ゆうやけ" },
+  { prompt: "朝ごはん", reading: "あさごはん" },
+  { prompt: "おにぎり", reading: "おにぎり" },
+  { prompt: "たまご焼き", reading: "たまごやき" },
+  { prompt: "お味噌汁", reading: "おみそしる" },
+  { prompt: "焼きそば", reading: "やきそば" },
+  { prompt: "お弁当", reading: "おべんとう" },
+  { prompt: "ハムエッグ", reading: "はむえっぐ" },
+  { prompt: "いちご", reading: "いちご" },
+  { prompt: "ぶどう", reading: "ぶどう" },
+  { prompt: "すいか", reading: "すいか" },
+  { prompt: "にんじん", reading: "にんじん" },
+  { prompt: "じゃがいも", reading: "じゃがいも" },
+  { prompt: "玉ねぎ", reading: "たまねぎ" },
+  { prompt: "きゅうり", reading: "きゅうり" },
+  { prompt: "トマト", reading: "とまと" },
+  { prompt: "うさぎ", reading: "うさぎ" },
+  { prompt: "くま", reading: "くま" },
+  { prompt: "きつね", reading: "きつね" },
+  { prompt: "たぬき", reading: "たぬき" },
+  { prompt: "ぞう", reading: "ぞう" },
+  { prompt: "きりん", reading: "きりん" },
+  { prompt: "さかな", reading: "さかな" },
+  { prompt: "ひこうき", reading: "ひこうき" },
+  { prompt: "新幹線", reading: "しんかんせん" },
+  { prompt: "郵便局", reading: "ゆうびんきょく" },
+  { prompt: "図書館", reading: "としょかん" },
+  { prompt: "動物園", reading: "どうぶつえん" },
+  { prompt: "水族館", reading: "すいぞくかん" },
+  { prompt: "遊園地", reading: "ゆうえんち" },
+  { prompt: "おもちゃ箱", reading: "おもちゃばこ" },
+  { prompt: "台所", reading: "だいどころ" },
+  { prompt: "洗濯物", reading: "せんたくもの" },
+  { prompt: "歯ブラシ", reading: "はぶらし" },
+  { prompt: "目覚まし", reading: "めざまし" },
+  { prompt: "運動会", reading: "うんどうかい" },
+  { prompt: "誕生日", reading: "たんじょうび" },
+  { prompt: "夏休み", reading: "なつやすみ" },
+  { prompt: "冬休み", reading: "ふゆやすみ" },
+  { prompt: "お正月", reading: "おしょうがつ" },
+  { prompt: "晩ごはん", reading: "ばんごはん" },
+  { prompt: "お母さん", reading: "おかあさん" },
+  { prompt: "お父さん", reading: "おとうさん" },
+  { prompt: "お兄さん", reading: "おにいさん" },
+  { prompt: "お姉さん", reading: "おねえさん" },
+  { prompt: "おばあさん", reading: "おばあさん" },
+  { prompt: "おじいさん", reading: "おじいさん" },
+  { prompt: "ぬいぐるみ", reading: "ぬいぐるみ" },
+  { prompt: "ランドセル", reading: "らんどせる" },
+  { prompt: "消しゴム", reading: "けしごむ" },
+  { prompt: "えんぴつ", reading: "えんぴつ" },
+  { prompt: "宿題", reading: "しゅくだい" },
+  { prompt: "日曜日", reading: "にちようび" },
+  { prompt: "信号機", reading: "しんごうき" },
+  { prompt: "横断歩道", reading: "おうだんほどう" },
 ];
 
 const LANGUAGE_CONFIG = {
@@ -154,37 +143,28 @@ const LANGUAGE_CONFIG = {
     shortLabel: "EN",
   },
   japanese: {
-    label: "JAPANESE",
-    shortLabel: "JP",
+    label: "日本語",
+    shortLabel: "日本語",
   },
 };
 
 const WORD_LENGTH_CYCLE = {
-  cycleSize: 18,
-  growthSpan: 13,
-  burstSpan: 5,
-  minLength: 3,
-  maxLength: 10,
+  cycleSize: 24,
+  growthSpan: 17,
+  burstSpan: 7,
+  minLength: 5,
+  maxLength: 12,
 };
 
 const MODE_CONFIG = {
   normal: {
     label: "NORMAL MODE",
     startEnemies: 1,
-    maxEnemies: 4,
+    maxEnemies: 5,
     maxAsteroids: 5,
     asteroid: true,
     enemyBaseInterval: 1540,
     enemyMinInterval: 680,
-  },
-  practice: {
-    label: "PRACTICE MODE",
-    startEnemies: 1,
-    maxEnemies: 3,
-    maxAsteroids: 2,
-    asteroid: true,
-    enemyBaseInterval: 1780,
-    enemyMinInterval: 860,
   },
 };
 
@@ -446,14 +426,16 @@ function getEnemyPacing(breaks = 0) {
   );
   const shortBurstTarget = WORD_LENGTH_CYCLE.minLength + Math.min(2, Math.floor(burstPhase / 2));
   const targetLength = inBurst ? shortBurstTarget : longTarget;
-  const loopBoost = loop * 0.05;
-  const burstBoost = inBurst ? 0.22 + (burstPhase / Math.max(1, WORD_LENGTH_CYCLE.burstSpan - 1)) * 0.13 : 0;
+  const loopBoost = Math.min(0.22, loop * 0.045);
+  const burstBoost = inBurst ? 0.14 + (burstPhase / Math.max(1, WORD_LENGTH_CYCLE.burstSpan - 1)) * 0.1 : 0;
+  const enemyLimitBonus = Math.min(2, loop + (inBurst ? 1 : 0));
 
   return {
     targetLength,
     lengthTolerance: inBurst ? 1 : 2 + Math.min(1, Math.floor(loop / 2)),
     speedMultiplier: 1 + loopBoost + burstBoost,
     spawnIntervalMultiplier: 1 - Math.min(0.42, loopBoost * 0.82 + burstBoost * 0.62),
+    enemyLimitBonus,
   };
 }
 
@@ -508,11 +490,12 @@ function getRank(stats) {
 function getShareUrl(result) {
   const { rank, stats } = result;
   const text = [
-    "LOCK TYPE SHOOTER の結果",
+    "LOCK TYPE SHOOTERで遊びました！",
     `スコア：${stats.score.toLocaleString()}点`,
     `ランク：${rank.name}（${rank.label}）`,
     `最大コンボ：${stats.maxCombo}`,
     `正確率：${stats.accuracy}% / WPM：${stats.wpm}`,
+    "照準とタイピングで迫る敵を撃ち落とす反応トレーニングゲームです。",
     "#LockTypeShooter",
   ].join("\n");
 
@@ -1008,7 +991,9 @@ function App() {
     const s = stateRef.current;
     const cfg = MODE_CONFIG[s.mode];
     if (isBonusTimeActive()) return BONUS_TIME_CONFIG.maxEnemies;
-    return Math.min(cfg.maxEnemies, cfg.startEnemies + Math.floor(s.breaks / 4));
+    const pacing = getEnemyPacing(s.breaks);
+    const phasePressure = Math.floor((s.breaks % WORD_LENGTH_CYCLE.cycleSize) / 8);
+    return Math.min(cfg.maxEnemies, cfg.startEnemies + phasePressure + pacing.enemyLimitBonus);
   };
 
   const spawnEnemy = ({ bonus = false } = {}) => {
@@ -2244,7 +2229,7 @@ function App() {
             {bonusTimeActive
               ? `CLICK TARGETS TO BREAK / MISS ${stats.bonusTimeMisses}/${stats.bonusTimeMaxMisses}`
               : target
-                ? `${target.name} / ${activeAnswer.length} KEYS / ${target.language.toUpperCase()}`
+                ? `${target.name} / ${activeAnswer.length} KEYS / ${LANGUAGE_CONFIG[target.language].label}`
                 : "CLICK A TARGET TO START TYPING"}
           </span>
         </div>
@@ -2310,10 +2295,7 @@ function App() {
             ))}
           </div>
           <div className="buttonRow">
-            <button onClick={() => startTraining("normal", language)}>START TRAINING</button>
-            <button className="orangeButton" onClick={() => startTraining("practice", language)}>
-              PRACTICE MODE
-            </button>
+            <button onClick={() => startTraining("normal", language)}>スタート</button>
           </div>
           <div className="keyHints">
             <span>Mouse: aim</span>
@@ -2353,7 +2335,7 @@ function App() {
           <div className="buttonRow">
             <button onClick={() => startTraining(stateRef.current.mode, stateRef.current.language)}>RETRY</button>
             <a className="shareButton" href={getShareUrl(result)} target="_blank" rel="noreferrer">
-              POST TO X
+              Xに投稿
             </a>
           </div>
         </Overlay>
