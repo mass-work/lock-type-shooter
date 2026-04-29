@@ -104,11 +104,12 @@ export const LANGUAGE_CONFIG = {
 export const DEFAULT_LANGUAGE = "japanese";
 
 export const WORD_LENGTH_CYCLE = {
-  cycleSize: 24,
-  growthSpan: 17,
-  burstSpan: 7,
-  minLength: 5,
-  maxLength: 12,
+  cycleSize: 30,
+  growthSpan: 22,
+  burstSpan: 8,
+  minLength: 4,
+  maxLength: 11,
+  shortWordMaxLength: 6,
 };
 
 const ROMAJI_MAP = {
@@ -279,18 +280,22 @@ export function getEnemyPacing(breaks = 0) {
   const inBurst = phase >= WORD_LENGTH_CYCLE.growthSpan;
   const burstPhase = inBurst ? phase - WORD_LENGTH_CYCLE.growthSpan : 0;
   const growthRatio = inBurst ? 0 : clamp(phase / (WORD_LENGTH_CYCLE.growthSpan - 1), 0, 1);
+  const easedGrowth = Math.pow(growthRatio, 1.55);
   const longTarget = Math.round(
-    WORD_LENGTH_CYCLE.minLength + (WORD_LENGTH_CYCLE.maxLength - WORD_LENGTH_CYCLE.minLength) * growthRatio,
+    WORD_LENGTH_CYCLE.minLength + (WORD_LENGTH_CYCLE.maxLength - WORD_LENGTH_CYCLE.minLength) * easedGrowth,
   );
   const shortBurstTarget = WORD_LENGTH_CYCLE.minLength + Math.min(2, Math.floor(burstPhase / 2));
   const targetLength = inBurst ? shortBurstTarget : longTarget;
   const loopBoost = Math.min(0.22, loop * 0.045);
   const burstBoost = inBurst ? 0.14 + (burstPhase / Math.max(1, WORD_LENGTH_CYCLE.burstSpan - 1)) * 0.1 : 0;
   const enemyLimitBonus = Math.min(2, loop + (inBurst ? 1 : 0));
+  const shortWordChance = inBurst ? 0.46 : 0.36 - Math.min(0.16, growthRatio * 0.18);
 
   return {
     targetLength,
     lengthTolerance: inBurst ? 1 : 2 + Math.min(1, Math.floor(loop / 2)),
+    shortWordChance,
+    shortWordMaxLength: WORD_LENGTH_CYCLE.shortWordMaxLength + Math.min(1, loop),
     speedMultiplier: 1 + loopBoost + burstBoost,
     spawnIntervalMultiplier: 1 - Math.min(0.42, loopBoost * 0.82 + burstBoost * 0.62),
     enemyLimitBonus,
@@ -314,7 +319,13 @@ export function createWordEntry(language = DEFAULT_LANGUAGE, breaks = 0) {
   const candidates = pool.filter(
     (item) => Math.abs(item.minInputLength - pacing.targetLength) <= pacing.lengthTolerance,
   );
-  const pickFrom = candidates.length ? candidates : pool;
+  const shortCandidates = pool.filter((item) => item.minInputLength <= pacing.shortWordMaxLength);
+  const pickFrom =
+    shortCandidates.length && Math.random() < pacing.shortWordChance
+      ? shortCandidates
+      : candidates.length
+        ? candidates
+        : pool;
   const picked = pickFrom[Math.floor(Math.random() * pickFrom.length)];
 
   return {
