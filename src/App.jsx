@@ -15,6 +15,7 @@ import {
 import { createAudioEngine, playSfx as playAudioSfx, startBgm, stopBgm } from "./game/audio";
 import { clamp, distance, getPlayfieldBottom, random } from "./game/math";
 import {
+  DEFAULT_LANGUAGE,
   LANGUAGE_CONFIG,
   WORD_LENGTH_CYCLE,
   createWordEntry,
@@ -32,7 +33,7 @@ function isEditableTarget(target) {
   return Boolean(target.closest("button, a, input, textarea, select, [contenteditable='true']"));
 }
 
-function makeGameState(mode = "normal", language = "english") {
+function makeGameState(mode = "normal", language = DEFAULT_LANGUAGE) {
   return {
     mode,
     language,
@@ -83,14 +84,14 @@ function makeGameState(mode = "normal", language = "english") {
 
 function App() {
   const canvasRef = useRef(null);
-  const stateRef = useRef(makeGameState("normal"));
+  const stateRef = useRef(makeGameState("normal", DEFAULT_LANGUAGE));
   const animationRef = useRef(null);
   const audioRef = useRef(null);
   const soundEnabledRef = useRef(true);
 
   const [phase, setPhase] = useState("title");
   const [mode, setMode] = useState("normal");
-  const [language, setLanguage] = useState("english");
+  const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
   const [stats, setStats] = useState(initialStats);
   const [target, setTarget] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -529,6 +530,28 @@ function App() {
     }
   };
 
+  const addTargetShot = (enemy, options = {}) => {
+    const s = stateRef.current;
+    const finisher = options.finisher ?? false;
+    const jitter = finisher ? 2 : 8;
+    const color = options.color ?? (finisher ? "orange" : "cyan");
+
+    s.shots.push({
+      x: s.pointer.x + random(-5, 5),
+      y: s.pointer.y + random(-5, 5),
+      tx: enemy.x + random(-jitter, jitter),
+      ty: enemy.y + random(-jitter, jitter),
+      life: finisher ? 0.2 : 0.12,
+      maxLife: finisher ? 0.2 : 0.12,
+      color,
+      width: finisher ? 4.4 : 2.2,
+    });
+
+    if (s.shots.length > 44) {
+      s.shots.splice(0, s.shots.length - 44);
+    }
+  };
+
   const awardNoMissBonus = (kind, milestone, x, y) => {
     const s = stateRef.current;
     const { rule, amount, major } = getNoMissBonus(kind, milestone);
@@ -665,14 +688,7 @@ function App() {
     s.lockedId = null;
     s.typedText = "";
 
-    s.shots.push({
-      x: s.pointer.x,
-      y: s.pointer.y,
-      tx: enemy.x,
-      ty: enemy.y,
-      life: 0.18,
-      maxLife: 0.18,
-    });
+    addTargetShot(enemy, { finisher: true, color: clickRush ? "magenta" : "orange" });
 
     addParticles(enemy.x, enemy.y, 40, "orange");
     addFloater(`+${bonus}`, enemy.x, enemy.y - 44, clickRush ? "magenta" : "cyan");
@@ -724,12 +740,12 @@ function App() {
       enemy.hpRate = 1 - nextText.length / currentAnswer.length;
       enemy.shake = 4;
 
-      addParticles(enemy.x + random(-8, 8), enemy.y + random(-8, 8), 5, "cyan");
-
       if (matches.some((option) => option === nextText)) {
         breakEnemy(enemy);
         awardPendingBonusTime(enemy.x, enemy.y);
       } else {
+        addTargetShot(enemy, { color: "cyan" });
+        addParticles(enemy.x + random(-8, 8), enemy.y + random(-8, 8), 5, "cyan");
         syncHud();
       }
     } else {
@@ -1270,7 +1286,7 @@ function App() {
       ctx.save();
       ctx.globalAlpha = Math.max(0, shot.life / shot.maxLife);
       ctx.strokeStyle = shotColor;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = shot.width ?? 3;
       ctx.shadowColor = glowColor;
       ctx.shadowBlur = 18;
       ctx.beginPath();
@@ -1593,9 +1609,7 @@ function App() {
 
       {phase === "title" && (
         <TitleOverlay
-          language={language}
-          onLanguageChange={setLanguage}
-          onStart={(nextLanguage) => startTraining("normal", nextLanguage)}
+          onStart={() => startTraining("normal", DEFAULT_LANGUAGE)}
         />
       )}
 

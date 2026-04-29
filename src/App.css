@@ -549,13 +549,6 @@ body::after {
   letter-spacing: 0.12em;
 }
 
-.promptGhost {
-  position: absolute;
-  inset: 0;
-  color: rgba(236, 251, 255, 0.06);
-  pointer-events: none;
-}
-
 .typed {
   color: var(--cyan);
   text-shadow:
@@ -704,16 +697,6 @@ body::after {
   justify-content: center;
 }
 
-.languageSwitch {
-  display: inline-flex;
-  gap: 6px;
-  margin: 0 auto 16px;
-  padding: 5px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-}
-
 button,
 .shareButton {
   display: inline-flex;
@@ -735,20 +718,6 @@ button,
   font-weight: 950;
   letter-spacing: 0.12em;
   text-decoration: none;
-}
-
-.languageSwitch button {
-  min-width: 132px;
-  padding: 9px 14px;
-  border-color: rgba(100, 224, 255, 0.22);
-  box-shadow: none;
-}
-
-.languageSwitch button.active {
-  color: #04111c;
-  background: var(--cyan);
-  border-color: var(--cyan);
-  box-shadow: 0 0 24px rgba(100, 224, 255, 0.28);
 }
 
 button:hover,
@@ -1200,16 +1169,6 @@ button:hover,
     flex-direction: column;
     gap: 3px;
     align-items: center;
-  }
-
-  .languageSwitch {
-    display: grid;
-    width: 100%;
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .languageSwitch button {
-    min-width: 0;
   }
 
   button,

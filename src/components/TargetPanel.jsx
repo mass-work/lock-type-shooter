@@ -36,7 +36,6 @@ export function TargetPanel({
           <span className="bonusTimeText">CLICK BREAK RUSH</span>
         ) : target ? (
           <>
-            {target.language === "english" && <span className="promptGhost">{target.prompt}</span>}
             <span className="typed">{typed.toUpperCase()}</span>
             <span className="next">{next.toUpperCase() || " "}</span>
             <span className="rest">{rest.toUpperCase()}</span>

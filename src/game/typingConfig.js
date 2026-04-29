@@ -1,86 +1,3 @@
-export const ENGLISH_WORDS = [
-  "KITTY",
-  "PUPPY",
-  "BUNNY",
-  "PANDA",
-  "KOALA",
-  "ZEBRA",
-  "HORSE",
-  "SHEEP",
-  "MOUSE",
-  "SNAKE",
-  "TIGER",
-  "OTTER",
-  "CAMEL",
-  "SHARK",
-  "WHALE",
-  "EAGLE",
-  "ROBIN",
-  "APPLE",
-  "BREAD",
-  "CHAIR",
-  "TABLE",
-  "CLOCK",
-  "PHONE",
-  "CABLE",
-  "WATER",
-  "BUTTON",
-  "SWITCH",
-  "SCREEN",
-  "KEYCAP",
-  "LAPTOP",
-  "CAMERA",
-  "COOKIE",
-  "FAMILY",
-  "FLOWER",
-  "GARDEN",
-  "ORANGE",
-  "RABBIT",
-  "SCHOOL",
-  "WINDOW",
-  "DOLPHIN",
-  "PENGUIN",
-  "CHICKEN",
-  "GIRAFFE",
-  "HAMSTER",
-  "MONKEY",
-  "TURTLE",
-  "KEYBOARD",
-  "MOUSEPAD",
-  "SPACEBAR",
-  "NOTEBOOK",
-  "BACKPACK",
-  "BASEBALL",
-  "BIRTHDAY",
-  "ELEPHANT",
-  "SQUIRREL",
-  "KANGAROO",
-  "GOLDFISH",
-  "STARFISH",
-  "BUTTERFLY",
-  "CROCODILE",
-  "ALLIGATOR",
-  "CHAMELEON",
-  "DRAGONFLY",
-  "BREAKFAST",
-  "CHOCOLATE",
-  "HAMBURGER",
-  "TELEPHONE",
-  "VEGETABLE",
-  "TRACKBALL",
-  "SMARTPHONE",
-  "HEADPHONES",
-  "TOOTHBRUSH",
-  "WATERMELON",
-  "PLAYGROUND",
-  "STRAWBERRY",
-  "CATERPILLAR",
-  "GRASSHOPPER",
-  "HUMMINGBIRD",
-  "HIPPOPOTAMUS",
-  "REFRIGERATOR",
-];
-
 export const JAPANESE_WORDS = [
   { prompt: "猫", reading: "ねこ" },
   { prompt: "犬", reading: "いぬ" },
@@ -178,15 +95,13 @@ export const JAPANESE_WORDS = [
 ];
 
 export const LANGUAGE_CONFIG = {
-  english: {
-    label: "ENGLISH",
-    shortLabel: "EN",
-  },
   japanese: {
     label: "日本語",
     shortLabel: "日本語",
   },
 };
+
+export const DEFAULT_LANGUAGE = "japanese";
 
 export const WORD_LENGTH_CYCLE = {
   cycleSize: 24,
@@ -393,17 +308,9 @@ const JAPANESE_WORD_ENTRIES = JAPANESE_WORDS.map((item) => {
   };
 });
 
-const ENGLISH_WORD_ENTRIES = ENGLISH_WORDS.map((word) => ({
-  prompt: word,
-  reading: word,
-  answerOptions: [word.toLowerCase()],
-  minInputLength: word.length,
-  language: "english",
-}));
-
-export function createWordEntry(language, breaks = 0) {
+export function createWordEntry(language = DEFAULT_LANGUAGE, breaks = 0) {
   const pacing = getEnemyPacing(breaks);
-  const pool = language === "japanese" ? JAPANESE_WORD_ENTRIES : ENGLISH_WORD_ENTRIES;
+  const pool = JAPANESE_WORD_ENTRIES;
   const candidates = pool.filter(
     (item) => Math.abs(item.minInputLength - pacing.targetLength) <= pacing.lengthTolerance,
   );
@@ -414,6 +321,6 @@ export function createWordEntry(language, breaks = 0) {
     prompt: picked.prompt,
     reading: picked.reading,
     answerOptions: picked.answerOptions,
-    language,
+    language: picked.language ?? language,
   };
 }
