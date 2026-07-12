@@ -1,7 +1,7 @@
 import { LANGUAGE_CONFIG } from "../game/typingConfig";
 import { HudValue } from "./HudValue";
 
-export function GameHud({ language, stats, bonusTimeActive, soundEnabled, onToggleSound }) {
+export function GameHud({ language, stats, bonusTimeActive, soundEnabled, canPause, onToggleSound, onPause }) {
   return (
     <>
       <header className="hud">
@@ -17,7 +17,7 @@ export function GameHud({ language, stats, bonusTimeActive, soundEnabled, onTogg
           <HudValue label="COMBO" value={stats.combo} tone="orange" />
           <HudValue label="ACC" value={`${stats.accuracy}%`} />
           <HudValue label="WPM" value={stats.wpm} />
-          <HudValue label="LOCK" value={stats.averageLock.toFixed(2)} />
+          <HudValue label="AIM" value={`${stats.pointerAccuracy}%`} />
           <HudValue label="NM BREAK" value={`${stats.noMissBreaks}/${stats.nextNoMissBreakBonus}`} tone="bonus" />
           <HudValue label="NM TYPE" value={`${stats.noMissKeys}/${stats.nextNoMissKeyBonus}`} tone="bonus" />
           <HudValue
@@ -49,6 +49,11 @@ export function GameHud({ language, stats, bonusTimeActive, soundEnabled, onTogg
       <button className={`soundToggle ${soundEnabled ? "on" : "off"}`} type="button" onClick={onToggleSound}>
         AUDIO {soundEnabled ? "ON" : "OFF"}
       </button>
+      {canPause && (
+        <button className="pauseToggle" type="button" onClick={onPause} aria-label="一時停止" title="一時停止">
+          <span aria-hidden="true" />
+        </button>
+      )}
     </>
   );
 }

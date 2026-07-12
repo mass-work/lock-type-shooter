@@ -9,6 +9,10 @@ Aim with a mouse or trackball, click to lock a target, then type the displayed J
 - Lock-on pointing practice with mouse or trackball
 - Familiar Japanese word pool that grows from short words into longer words before cycling back
 - Dedicated typing dock separated from the playfield
+- Aim accuracy, typing accuracy, weak-key analysis, and a focused next-session goal
+- Spaced review targets that bring missed words back after a short interval
+- Local-only personal best tracking with no account or personal data required
+- Automatic pause when the game tab is hidden
 - Procedural Web Audio shooting sound effects and background music
 - Funnel-style enemy approach, varied asteroid paths, combo scoring, no-miss milestone bonuses, miss-ended bonus time rushes, rank results, and overdrive clears
 - GitHub Pages deployment via GitHub Actions

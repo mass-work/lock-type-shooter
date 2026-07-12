@@ -14,12 +14,14 @@ export function TargetPanel({
   return (
     <section className={`targetPanel ${target ? "locked" : "idle"} ${bonusTimeActive ? "bonusMode" : ""}`}>
       <div className="targetTop">
-        <span className="lockBadge">{bonusTimeActive ? "BONUS TIME" : target ? "LOCKED" : "NO LOCK"}</span>
+        <span className={`lockBadge ${target?.isReview ? "review" : ""}`}>
+          {bonusTimeActive ? "BONUS TIME" : target?.isReview ? "REVIEW" : target ? "LOCKED" : "NO LOCK"}
+        </span>
         <span className="targetName">
           {bonusTimeActive
             ? `CLICK TARGETS TO BREAK / MISS ${stats.bonusTimeMisses}/${stats.bonusTimeMaxMisses}`
             : target
-              ? `${target.name} / ${activeAnswer.length} KEYS / ${LANGUAGE_CONFIG[target.language].label}`
+              ? `${target.name} / ${activeAnswer.length} KEYS / ${LANGUAGE_CONFIG[target.language].label}${target.isReview ? " / RETRY WORD" : ""}`
               : "CLICK A TARGET TO START TYPING"}
         </span>
       </div>

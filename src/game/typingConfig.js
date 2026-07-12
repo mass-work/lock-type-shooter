@@ -313,19 +313,35 @@ const JAPANESE_WORD_ENTRIES = JAPANESE_WORDS.map((item) => {
   };
 });
 
-export function createWordEntry(language = DEFAULT_LANGUAGE, breaks = 0) {
+export function createWordEntry(language = DEFAULT_LANGUAGE, breaks = 0, options = {}) {
   const pacing = getEnemyPacing(breaks);
   const pool = JAPANESE_WORD_ENTRIES;
-  const candidates = pool.filter(
+  const preferred = options.preferredPrompt
+    ? pool.find((item) => item.prompt === options.preferredPrompt)
+    : null;
+
+  if (preferred) {
+    return {
+      prompt: preferred.prompt,
+      reading: preferred.reading,
+      answerOptions: preferred.answerOptions,
+      language: preferred.language ?? language,
+    };
+  }
+
+  const excludedPrompts = new Set(options.excludedPrompts ?? []);
+  const availablePool = pool.filter((item) => !excludedPrompts.has(item.prompt));
+  const sourcePool = availablePool.length >= 8 ? availablePool : pool;
+  const candidates = sourcePool.filter(
     (item) => Math.abs(item.minInputLength - pacing.targetLength) <= pacing.lengthTolerance,
   );
-  const shortCandidates = pool.filter((item) => item.minInputLength <= pacing.shortWordMaxLength);
+  const shortCandidates = sourcePool.filter((item) => item.minInputLength <= pacing.shortWordMaxLength);
   const pickFrom =
     shortCandidates.length && Math.random() < pacing.shortWordChance
       ? shortCandidates
       : candidates.length
         ? candidates
-        : pool;
+        : sourcePool;
   const picked = pickFrom[Math.floor(Math.random() * pickFrom.length)];
 
   return {

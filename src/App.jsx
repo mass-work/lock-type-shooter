@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GameHud } from "./components/GameHud";
+import { PauseOverlay } from "./components/PauseOverlay";
 import { ResultOverlay } from "./components/ResultOverlay";
 import { TargetPanel } from "./components/TargetPanel";
 import { TitleOverlay } from "./components/TitleOverlay";
@@ -14,6 +15,7 @@ import {
 } from "./game/gameConfig";
 import { createAudioEngine, playSfx as playAudioSfx, startBgm, stopBgm } from "./game/audio";
 import { clamp, distance, getPlayfieldBottom, random } from "./game/math";
+import { getTrainingInsight, saveSessionProgress } from "./game/progress";
 import {
   DEFAULT_LANGUAGE,
   LANGUAGE_CONFIG,
@@ -21,6 +23,81 @@ import {
   createWordEntry,
   getEnemyPacing,
 } from "./game/typingConfig";
+
+const CORNER_SEGMENTS = [
+  [-1, -1],
+  [1, -1],
+  [1, 1],
+  [-1, 1],
+];
+
+const DRONE_NODES = [
+  [0, -1],
+  [0.86, 0.5],
+  [-0.86, 0.5],
+];
+
+const RENDER_PROFILES = {
+  balanced: {
+    name: "balanced",
+    dprMax: 1.15,
+    starCount: 84,
+    particleBudget: 180,
+    particleBurstLimit: 46,
+    shotLimit: 34,
+    targetShotLimit: 36,
+    surgeLimit: 3,
+    surgeRayLimit: 5,
+    surgeRingLimit: 3,
+    surgeBladeLimit: 9,
+    asteroidTrailLimit: 6,
+    gridColumnHalf: 8,
+    gridRows: 12,
+    speedLines: 8,
+    glowScale: 0.64,
+    drawArenaGlow: true,
+    drawMajorEcho: true,
+  },
+  light: {
+    name: "light",
+    dprMax: 1,
+    starCount: 56,
+    particleBudget: 105,
+    particleBurstLimit: 26,
+    shotLimit: 24,
+    targetShotLimit: 26,
+    surgeLimit: 2,
+    surgeRayLimit: 4,
+    surgeRingLimit: 2,
+    surgeBladeLimit: 6,
+    asteroidTrailLimit: 4,
+    gridColumnHalf: 6,
+    gridRows: 9,
+    speedLines: 5,
+    glowScale: 0.36,
+    drawArenaGlow: false,
+    drawMajorEcho: false,
+  },
+};
+
+function getInitialRenderProfile() {
+  const cores = typeof navigator.hardwareConcurrency === "number" ? navigator.hardwareConcurrency : 8;
+  const memory = typeof navigator.deviceMemory === "number" ? navigator.deviceMemory : 8;
+  const reducedMotion =
+    typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return reducedMotion || cores <= 4 || memory <= 4 ? RENDER_PROFILES.light : RENDER_PROFILES.balanced;
+}
+
+function getCanvasDpr(profile) {
+  return Math.max(1, Math.min(profile.dprMax, window.devicePixelRatio || 1));
+}
+
+function getTopMistakes(values, limit = 3) {
+  return Object.entries(values)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([label, count]) => ({ label, count }));
+}
 
 function blurActiveControl() {
   if (document.activeElement instanceof HTMLElement) {
@@ -34,14 +111,19 @@ function isEditableTarget(target) {
 }
 
 function makeGameState(mode = "normal", language = DEFAULT_LANGUAGE) {
+  const renderProfile = getInitialRenderProfile();
+
   return {
     mode,
     language,
     running: false,
+    paused: false,
     over: false,
     width: window.innerWidth,
     height: window.innerHeight,
-    dpr: Math.max(1, Math.min(1.5, window.devicePixelRatio || 1)),
+    dpr: getCanvasDpr(renderProfile),
+    renderProfile,
+    slowFrames: 0,
     stars: [],
     enemies: [],
     asteroids: [],
@@ -59,10 +141,22 @@ function makeGameState(mode = "normal", language = DEFAULT_LANGUAGE) {
     combo: 0,
     maxCombo: 0,
     breaks: 0,
+    typingBreaks: 0,
+    rushBreaks: 0,
+    overdriveBreaks: 0,
     locks: 0,
+    pointerAttempts: 0,
+    pointerHits: 0,
     totalKeys: 0,
     correctKeys: 0,
+    damageTaken: 0,
+    mistakeKeys: {},
+    mistakeWords: {},
+    recentPrompts: [],
+    reviewQueue: [],
     startAt: 0,
+    pausedAt: 0,
+    totalPausedMs: 0,
     lastFrame: performance.now(),
     lastHudSync: 0,
     lastEnemy: 0,
@@ -73,6 +167,8 @@ function makeGameState(mode = "normal", language = DEFAULT_LANGUAGE) {
     lockTimes: [],
     noMissBreaks: 0,
     noMissKeys: 0,
+    maxNoMissBreaks: 0,
+    maxNoMissKeys: 0,
     nextNoMissBreakBonus: NO_MISS_BONUS_RULES.break.step,
     nextNoMissKeyBonus: NO_MISS_BONUS_RULES.typing.step,
     nextBonusTimeKey: BONUS_TIME_CONFIG.firstMilestone,
@@ -100,6 +196,7 @@ function App() {
   const [damageFlash, setDamageFlash] = useState(false);
   const [result, setResult] = useState(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [paused, setPaused] = useState(false);
 
   const currentModeConfig = useMemo(() => MODE_CONFIG[mode], [mode]);
 
@@ -125,6 +222,7 @@ function App() {
   };
 
   const toggleSound = () => {
+    blurActiveControl();
     const next = !soundEnabledRef.current;
     soundEnabledRef.current = next;
     setSoundEnabled(next);
@@ -140,6 +238,42 @@ function App() {
         void audioRef.current.ctx.suspend();
       }
     }
+  };
+
+  const pauseTraining = () => {
+    blurActiveControl();
+    const s = stateRef.current;
+    if (!s.running || s.over || s.paused) return;
+
+    s.running = false;
+    s.paused = true;
+    s.pausedAt = performance.now();
+    stopBgm(audioRef.current);
+    setPaused(true);
+  };
+
+  const resumeTraining = () => {
+    blurActiveControl();
+    const s = stateRef.current;
+    if (!s.paused || s.over) return;
+
+    const now = performance.now();
+    const pausedFor = Math.max(0, now - s.pausedAt);
+    s.totalPausedMs += pausedFor;
+    s.lastEnemy += pausedFor;
+    s.lastAsteroid += pausedFor;
+    s.lastBonusEnemy += pausedFor;
+    s.enemies.forEach((enemy) => {
+      enemy.born += pausedFor;
+    });
+    s.pausedAt = 0;
+    s.paused = false;
+    s.running = true;
+    s.lastFrame = now;
+    setPaused(false);
+    startBgm(getAudioEngine());
+    showNotice("TRAINING RESUMED", "good");
+    syncHud();
   };
 
   const showNotice = (text, type = "info") => {
@@ -253,8 +387,14 @@ function App() {
 
   const computeStats = () => {
     const s = stateRef.current;
-    const elapsedMin = s.startAt ? Math.max(0.01, (performance.now() - s.startAt) / 60000) : 0.01;
+    const now = performance.now();
+    const currentPauseMs = s.paused && s.pausedAt ? now - s.pausedAt : 0;
+    const elapsedMs = s.startAt ? Math.max(0, now - s.startAt - s.totalPausedMs - currentPauseMs) : 0;
+    const elapsedMin = Math.max(0.01, elapsedMs / 60000);
     const accuracy = s.totalKeys ? Math.round((s.correctKeys / s.totalKeys) * 100) : 100;
+    const pointerAccuracy = s.pointerAttempts
+      ? Math.round((s.pointerHits / s.pointerAttempts) * 100)
+      : 100;
     const wpm = Math.round((s.correctKeys / 5) / elapsedMin);
     const averageLock = s.lockTimes.length
       ? s.lockTimes.reduce((sum, value) => sum + value, 0) / s.lockTimes.length / 1000
@@ -270,9 +410,23 @@ function App() {
       wpm,
       averageLock,
       breaks: s.breaks,
+      typingBreaks: s.typingBreaks,
+      rushBreaks: s.rushBreaks,
+      overdriveBreaks: s.overdriveBreaks,
       locks: s.locks,
+      pointerAttempts: s.pointerAttempts,
+      pointerHits: s.pointerHits,
+      pointerMisses: s.pointerAttempts - s.pointerHits,
+      pointerAccuracy,
+      totalKeys: s.totalKeys,
+      damageTaken: s.damageTaken,
+      elapsedSeconds: Math.round(elapsedMs / 1000),
+      mistakeKeys: getTopMistakes(s.mistakeKeys),
+      mistakeWords: getTopMistakes(s.mistakeWords),
       noMissBreaks: s.noMissBreaks,
       noMissKeys: s.noMissKeys,
+      maxNoMissBreaks: s.maxNoMissBreaks,
+      maxNoMissKeys: s.maxNoMissKeys,
       nextNoMissBreakBonus: s.nextNoMissBreakBonus,
       nextNoMissKeyBonus: s.nextNoMissKeyBonus,
       nextBonusTimeKey: s.nextBonusTimeKey,
@@ -301,12 +455,14 @@ function App() {
       answerOptions: enemy.answerOptions,
       typedText: s.typedText,
       language: enemy.language,
+      isReview: enemy.isReview,
     });
   };
 
   const createStars = () => {
     const s = stateRef.current;
-    s.stars = Array.from({ length: 115 }, () => ({
+    const profile = s.renderProfile ?? RENDER_PROFILES.balanced;
+    s.stars = Array.from({ length: profile.starCount }, () => ({
       x: random(0, s.width),
       y: random(0, s.height),
       size: random(0.5, 2.1),
@@ -322,7 +478,8 @@ function App() {
 
     s.width = window.innerWidth;
     s.height = window.innerHeight;
-    s.dpr = Math.max(1, Math.min(1.5, window.devicePixelRatio || 1));
+    s.dpr = getCanvasDpr(s.renderProfile ?? RENDER_PROFILES.balanced);
+    document.body.dataset.renderProfile = s.renderProfile?.name ?? RENDER_PROFILES.balanced.name;
     s.pointer.x = clamp(s.pointer.x, 0, s.width);
     s.pointer.y = clamp(s.pointer.y, 0, getPlayfieldBottom(s.height) - 8);
 
@@ -393,7 +550,15 @@ function App() {
     const s = stateRef.current;
     if (s.enemies.length >= getActiveEnemyLimit()) return;
 
-    const word = createWordEntry(s.language, s.breaks);
+    const dueReview = bonus || s.enemies.some((enemy) => enemy.isReview)
+      ? null
+      : s.reviewQueue.find((item) => item.dueAt <= s.typingBreaks);
+    const word = createWordEntry(s.language, s.breaks, {
+      preferredPrompt: dueReview?.prompt,
+      excludedPrompts: s.recentPrompts,
+    });
+    s.recentPrompts.push(word.prompt);
+    if (s.recentPrompts.length > 6) s.recentPrompts.shift();
     const pacing = getEnemyPacing(s.breaks);
     const placement = findSpawnPlacement(bonus, 0.01, bonus ? 0.18 : 0.1);
     if (!placement) return;
@@ -422,6 +587,7 @@ function App() {
       phase: random(0, Math.PI * 2),
       drift: random(0.7, 1.6),
       bonusTarget: bonus,
+      isReview: Boolean(dueReview),
       shake: 0,
       dead: false,
     });
@@ -465,8 +631,9 @@ function App() {
 
   const addParticles = (x, y, count, color) => {
     const s = stateRef.current;
-    const budget = Math.max(0, 260 - s.particles.length);
-    const actualCount = Math.min(count, budget, 70);
+    const profile = s.renderProfile ?? RENDER_PROFILES.balanced;
+    const budget = Math.max(0, profile.particleBudget - s.particles.length);
+    const actualCount = Math.min(count, budget, profile.particleBurstLimit);
 
     for (let i = 0; i < actualCount; i += 1) {
       const angle = random(0, Math.PI * 2);
@@ -497,9 +664,12 @@ function App() {
 
   const addMilestoneSurge = (x, y, type = "break", major = false) => {
     const s = stateRef.current;
+    const profile = s.renderProfile ?? RENDER_PROFILES.balanced;
     const color = type === "typing" ? "cyan" : "magenta";
 
-    if (s.surges.length > 4) s.surges.shift();
+    if (s.surges.length >= profile.surgeLimit) {
+      s.surges.splice(0, s.surges.length - profile.surgeLimit + 1);
+    }
     s.surges.push({
       x,
       y,
@@ -510,7 +680,7 @@ function App() {
       spin: random(-0.6, 0.6),
     });
 
-    const rayCount = major ? 7 : 4;
+    const rayCount = Math.min(major ? 7 : 4, profile.surgeRayLimit);
     for (let i = 0; i < rayCount; i += 1) {
       const angle = (i / rayCount) * Math.PI * 2 + random(-0.18, 0.18);
       const spread = major ? random(120, 230) : random(70, 150);
@@ -525,13 +695,14 @@ function App() {
       });
     }
 
-    if (s.shots.length > 30) {
-      s.shots.splice(0, s.shots.length - 30);
+    if (s.shots.length > profile.shotLimit) {
+      s.shots.splice(0, s.shots.length - profile.shotLimit);
     }
   };
 
   const addTargetShot = (enemy, options = {}) => {
     const s = stateRef.current;
+    const profile = s.renderProfile ?? RENDER_PROFILES.balanced;
     const finisher = options.finisher ?? false;
     const jitter = finisher ? 2 : 8;
     const color = options.color ?? (finisher ? "orange" : "cyan");
@@ -547,8 +718,8 @@ function App() {
       width: finisher ? 4.4 : 2.2,
     });
 
-    if (s.shots.length > 44) {
-      s.shots.splice(0, s.shots.length - 44);
+    if (s.shots.length > profile.targetShotLimit) {
+      s.shots.splice(0, s.shots.length - profile.targetShotLimit);
     }
   };
 
@@ -584,9 +755,18 @@ function App() {
 
   const hitTestEnemy = (x, y) => {
     const s = stateRef.current;
-    return [...s.enemies]
-      .sort((a, b) => distance(s.pointer.x, s.pointer.y, a.x, a.y) - distance(s.pointer.x, s.pointer.y, b.x, b.y))
-      .find((enemy) => distance(x, y, enemy.x, enemy.y) < enemy.radius + 34);
+    let closest = null;
+    let closestDistance = Infinity;
+
+    s.enemies.forEach((enemy) => {
+      const hitDistance = distance(x, y, enemy.x, enemy.y);
+      if (hitDistance < enemy.radius + 34 && hitDistance < closestDistance) {
+        closest = enemy;
+        closestDistance = hitDistance;
+      }
+    });
+
+    return closest;
   };
 
   const lockEnemy = (enemy) => {
@@ -595,6 +775,11 @@ function App() {
 
     if (isBonusTimeActive()) {
       breakEnemy(enemy, { bonusClick: true });
+      return;
+    }
+
+    if (s.lockedId === enemy.id) {
+      playSfx("lock");
       return;
     }
 
@@ -618,28 +803,85 @@ function App() {
     syncHud();
   };
 
+  const queueWordForReview = (enemy) => {
+    const s = stateRef.current;
+    const dueAt = s.typingBreaks + 3;
+    const queued = s.reviewQueue.find((item) => item.prompt === enemy.prompt);
+
+    if (queued) {
+      queued.dueAt = dueAt;
+    } else {
+      s.reviewQueue.push({ prompt: enemy.prompt, dueAt });
+    }
+  };
+
   const endTraining = (title, message) => {
     const s = stateRef.current;
     s.over = true;
+    s.running = false;
+    s.paused = false;
     s.lockedId = null;
     stopBgm(audioRef.current);
     const finalStats = computeStats();
     const rank = getRank(finalStats);
+    const progress = saveSessionProgress(finalStats);
 
     setResult({
       title,
       message,
       stats: finalStats,
       rank,
+      insight: getTrainingInsight(finalStats),
+      ...progress,
     });
     setPhase("result");
     syncHud();
   };
 
-  const registerMiss = (damage = 4) => {
+  const applyDamage = (damage, label) => {
     const s = stateRef.current;
+    if (s.over) return true;
 
-    s.totalKeys += 1;
+    const actualDamage = Math.min(s.hp, damage);
+    s.hp = clamp(s.hp - actualDamage, 0, 100);
+    s.damageTaken += actualDamage;
+    s.shake = 12;
+
+    const enemy = s.enemies.find((item) => item.id === s.lockedId);
+    if (enemy) enemy.shake = 8;
+
+    triggerDamage();
+    playSfx("miss");
+    showNotice(label, "bad");
+
+    if (s.hp <= 0) {
+      endTraining("TRAINING COMPLETE", "今回の記録を確認して、次の目標に挑戦しよう。");
+      return true;
+    }
+
+    syncHud();
+    return false;
+  };
+
+  const registerDamage = (damage, label = "IMPACT") => {
+    const s = stateRef.current;
+    if (s.over) return;
+    s.combo = 0;
+    s.noMissBreaks = 0;
+    s.nextNoMissBreakBonus = NO_MISS_BONUS_RULES.break.step;
+    applyDamage(damage, label);
+  };
+
+  const registerTypingMiss = (enemy, typedKey, damage = 3) => {
+    const s = stateRef.current;
+    const validPrefixes = enemy.answerOptions.filter((option) => option.startsWith(s.typedText));
+    const expected = [...new Set(validPrefixes.map((option) => option[s.typedText.length]).filter(Boolean))]
+      .sort()
+      .join("/");
+
+    s.mistakeKeys[expected || typedKey] = (s.mistakeKeys[expected || typedKey] ?? 0) + 1;
+    s.mistakeWords[enemy.prompt] = (s.mistakeWords[enemy.prompt] ?? 0) + 1;
+    queueWordForReview(enemy);
     s.combo = 0;
     s.noMissBreaks = 0;
     s.noMissKeys = 0;
@@ -649,22 +891,7 @@ function App() {
     s.bonusTimeActive = false;
     s.bonusTimeMisses = 0;
     s.bonusTimeLevel = 0;
-    s.hp = clamp(s.hp - damage, 0, 100);
-    s.shake = 12;
-
-    const enemy = s.enemies.find((item) => item.id === s.lockedId);
-    if (enemy) enemy.shake = 8;
-
-    triggerDamage();
-    playSfx("miss");
-    showNotice("MISS", "bad");
-
-    if (s.hp <= 0) {
-      endTraining("TRAINING FAILED", "Shield is down. Keep the cursor stable and type cleanly.");
-      return;
-    }
-
-    syncHud();
+    applyDamage(damage, "TYPE MISS");
   };
 
   const breakEnemy = (enemy, options = {}) => {
@@ -679,7 +906,13 @@ function App() {
     s.combo += 1;
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.breaks += 1;
+    if (clickRush) {
+      s.rushBreaks += 1;
+    } else {
+      s.typingBreaks += 1;
+    }
     s.noMissBreaks += 1;
+    s.maxNoMissBreaks = Math.max(s.maxNoMissBreaks, s.noMissBreaks);
     if (!clickRush) {
       chargeSpecial(16 + Math.min(20, s.combo * 2));
     }
@@ -695,6 +928,14 @@ function App() {
     addFloater(clickRush ? "RUSH BREAK" : "BREAK", enemy.x, enemy.y - 20, "orange");
     playSfx("break");
     s.enemies = s.enemies.filter((item) => item.id !== enemy.id);
+
+    if (enemy.isReview && !clickRush) {
+      const reviewBonus = 180;
+      s.score += reviewBonus;
+      s.reviewQueue = s.reviewQueue.filter((item) => item.prompt !== enemy.prompt);
+      addFloater(`REVIEW CLEAR +${reviewBonus}`, enemy.x, enemy.y - 72, "cyan");
+      showNotice("REVIEW CLEAR", "good");
+    }
 
     if (s.combo > 0 && s.combo % 5 === 0) {
       const chainBonus = 240 + s.combo * 36;
@@ -730,6 +971,7 @@ function App() {
     if (matches.length > 0) {
       s.correctKeys += 1;
       s.noMissKeys += 1;
+      s.maxNoMissKeys = Math.max(s.maxNoMissKeys, s.noMissKeys);
       s.typedText = nextText;
       chargeSpecial(0.85);
       s.score += 6 + Math.min(34, s.combo * 1.4);
@@ -749,7 +991,7 @@ function App() {
         syncHud();
       }
     } else {
-      registerMiss(3);
+      registerTypingMiss(enemy, char);
     }
   };
 
@@ -762,8 +1004,8 @@ function App() {
       return;
     }
 
-    const targets = [...s.enemies];
-    const hazards = [...s.asteroids];
+    const targets = s.enemies;
+    const hazards = s.asteroids;
     if (!targets.length && !hazards.length) {
       playSfx("deny");
       showNotice("NO TARGETS", "bad");
@@ -777,8 +1019,12 @@ function App() {
     const hazardScore = hazards.length * 110;
     const bonus = targetScore + hazardScore + Math.max(0, s.combo) * 70;
 
-    [...targets, ...hazards].forEach((item) => {
+    targets.forEach((item) => {
       addParticles(item.x, item.y, 48, item.answerOptions ? "orange" : "red");
+      addFloater("OVERDRIVE", item.x, item.y - 18, "orange");
+    });
+    hazards.forEach((item) => {
+      addParticles(item.x, item.y, 48, "red");
       addFloater("OVERDRIVE", item.x, item.y - 18, "orange");
     });
 
@@ -786,7 +1032,9 @@ function App() {
     s.combo += targets.length;
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.breaks += targets.length;
+    s.overdriveBreaks += targets.length;
     s.noMissBreaks += targets.length;
+    s.maxNoMissBreaks = Math.max(s.maxNoMissBreaks, s.noMissBreaks);
     if (targets.length) {
       awardPendingNoMissBonuses("break", s.pointer.x, s.pointer.y - 72);
     }
@@ -812,6 +1060,7 @@ function App() {
     playSfx("start");
     setMode(nextMode);
     setLanguage(nextLanguage);
+    setPaused(false);
     stateRef.current = makeGameState(nextMode, nextLanguage);
     resizeCanvas();
 
@@ -833,6 +1082,7 @@ function App() {
   };
 
   const drawShip = (ctx, x, y, rotation, player = false, visualScale = 1) => {
+    const profile = stateRef.current.renderProfile ?? RENDER_PROFILES.balanced;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rotation);
@@ -842,7 +1092,7 @@ function App() {
     ctx.strokeStyle = player ? "rgba(233,251,255,.96)" : "rgba(255,59,92,.96)";
     ctx.lineWidth = 2;
     ctx.shadowColor = player ? "rgba(0,242,254,.85)" : "rgba(255,59,92,.55)";
-    ctx.shadowBlur = player ? 16 : 11;
+    ctx.shadowBlur = (player ? 16 : 11) * profile.glowScale;
 
     if (player) {
       ctx.fillStyle = "rgba(0,242,254,.38)";
@@ -875,6 +1125,7 @@ function App() {
 
   const drawEnemy = (ctx, enemy, now) => {
     const s = stateRef.current;
+    const profile = s.renderProfile ?? RENDER_PROFILES.balanced;
     const locked = s.lockedId === enemy.id;
     const rush = enemy.bonusTarget;
     const hovered = distance(s.pointer.x, s.pointer.y, enemy.x, enemy.y) < enemy.radius + 38;
@@ -896,7 +1147,7 @@ function App() {
     ctx.strokeStyle = glow;
     ctx.lineWidth = 2;
     ctx.shadowColor = rush ? "rgba(255,209,102,.9)" : locked ? "rgba(255,79,193,.95)" : "rgba(100,224,255,.65)";
-    ctx.shadowBlur = rush ? 26 : locked ? 28 : 18;
+    ctx.shadowBlur = (rush ? 26 : locked ? 28 : 18) * profile.glowScale;
     ctx.beginPath();
     ctx.ellipse(0, 0, enemy.baseRadius + 34, enemy.baseRadius + 18, now * 0.001 + enemy.phase, 0, Math.PI * 2);
     ctx.stroke();
@@ -918,7 +1169,7 @@ function App() {
 
     ctx.fillStyle = coreGradient;
     ctx.shadowColor = rush ? "rgba(255,209,102,.95)" : locked ? "rgba(255,177,59,.95)" : "rgba(255,79,193,.75)";
-    ctx.shadowBlur = rush ? 30 : locked ? 30 : 22;
+    ctx.shadowBlur = (rush ? 30 : locked ? 30 : 22) * profile.glowScale;
     ctx.beginPath();
     ctx.arc(0, 0, enemy.baseRadius + 12, 0, Math.PI * 2);
     ctx.fill();
@@ -929,12 +1180,7 @@ function App() {
 
     const size = enemy.baseRadius + 16 + pulse * 3;
     const corner = 10;
-    [
-      [-1, -1],
-      [1, -1],
-      [1, 1],
-      [-1, 1],
-    ].forEach(([sx, sy]) => {
+    CORNER_SEGMENTS.forEach(([sx, sy]) => {
       ctx.beginPath();
       ctx.moveTo(sx * size, sy * (size - corner));
       ctx.lineTo(sx * size, sy * size);
@@ -960,16 +1206,12 @@ function App() {
 
     ctx.save();
     ctx.rotate(-now * 0.0024 + enemy.phase);
-    [
-      [0, -1],
-      [0.86, 0.5],
-      [-0.86, 0.5],
-    ].forEach(([dx, dy]) => {
+    DRONE_NODES.forEach(([dx, dy]) => {
       const px = dx * (enemy.baseRadius + 18);
       const py = dy * (enemy.baseRadius + 18);
       ctx.fillStyle = rush ? "rgba(255,240,168,.95)" : locked ? "rgba(255,177,59,.95)" : "rgba(100,224,255,.88)";
       ctx.shadowColor = ctx.fillStyle;
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 12 * profile.glowScale;
       ctx.fillRect(px - 5, py - 5, 10, 10);
     });
     ctx.restore();
@@ -1024,7 +1266,7 @@ function App() {
     ctx.strokeStyle = rush ? "rgba(255,240,168,.82)" : locked ? "rgba(255,177,59,.78)" : "rgba(100,224,255,.34)";
     ctx.lineWidth = 1;
     ctx.shadowColor = rush ? "rgba(255,209,102,.52)" : locked ? "rgba(255,177,59,.42)" : "rgba(100,224,255,.2)";
-    ctx.shadowBlur = locked || rush ? 18 : 10;
+    ctx.shadowBlur = (locked || rush ? 18 : 10) * profile.glowScale;
     ctx.fillRect(labelX - plateWidth / 2, labelY - plateHeight / 2, plateWidth, plateHeight);
     ctx.strokeRect(labelX - plateWidth / 2, labelY - plateHeight / 2, plateWidth, plateHeight);
     ctx.shadowBlur = 0;
@@ -1034,6 +1276,7 @@ function App() {
   };
 
   const drawAsteroid = (ctx, asteroid) => {
+    const profile = stateRef.current.renderProfile ?? RENDER_PROFILES.balanced;
     ctx.save();
     ctx.globalAlpha = 0.82;
     if (asteroid.trail.length > 1) {
@@ -1048,6 +1291,7 @@ function App() {
     }
 
     asteroid.trail.forEach((point, index) => {
+      if (profile.name === "light" && index % 2 === 0) return;
       const alpha = (index + 1) / asteroid.trail.length;
       ctx.beginPath();
       ctx.arc(point.x, point.y, Math.max(2, asteroid.radius * 0.26 * alpha), 0, Math.PI * 2);
@@ -1092,24 +1336,29 @@ function App() {
 
   const drawArenaGrid = (ctx, now) => {
     const s = stateRef.current;
+    const profile = s.renderProfile ?? RENDER_PROFILES.balanced;
     const horizon = s.height * 0.34;
     const floor = getPlayfieldBottom(s.height) + 18;
     const centerX = s.width / 2;
     const pulse = Math.sin(now * 0.0015) * 0.5 + 0.5;
 
     ctx.save();
-    const tunnelGradient = ctx.createRadialGradient(centerX, horizon + 48, 20, centerX, horizon + 48, s.width * 0.42);
-    tunnelGradient.addColorStop(0, "rgba(255,79,193,.2)");
-    tunnelGradient.addColorStop(0.42, "rgba(100,224,255,.08)");
-    tunnelGradient.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = tunnelGradient;
+    if (profile.drawArenaGlow) {
+      const tunnelGradient = ctx.createRadialGradient(centerX, horizon + 48, 20, centerX, horizon + 48, s.width * 0.42);
+      tunnelGradient.addColorStop(0, "rgba(255,79,193,.18)");
+      tunnelGradient.addColorStop(0.42, "rgba(100,224,255,.07)");
+      tunnelGradient.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = tunnelGradient;
+    } else {
+      ctx.fillStyle = "rgba(100,224,255,.025)";
+    }
     ctx.fillRect(0, 0, s.width, s.height);
 
     ctx.globalAlpha = 0.9;
     ctx.strokeStyle = "rgba(100,224,255,.2)";
     ctx.lineWidth = 1;
 
-    for (let i = -10; i <= 10; i += 1) {
+    for (let i = -profile.gridColumnHalf; i <= profile.gridColumnHalf; i += 1) {
       const endX = centerX + i * s.width * 0.065;
       ctx.beginPath();
       ctx.moveTo(centerX + i * 16, horizon);
@@ -1117,8 +1366,8 @@ function App() {
       ctx.stroke();
     }
 
-    for (let i = 0; i < 18; i += 1) {
-      const t = (i + ((now * 0.00016) % 1)) / 18;
+    for (let i = 0; i < profile.gridRows; i += 1) {
+      const t = (i + ((now * 0.00016) % 1)) / profile.gridRows;
       const y = horizon + (floor - horizon) * t ** 1.85;
       const half = s.width * (0.04 + t * 0.49);
       ctx.globalAlpha = 0.1 + t * 0.34;
@@ -1140,7 +1389,7 @@ function App() {
       ctx.stroke();
     });
 
-    for (let i = 0; i < 14; i += 1) {
+    for (let i = 0; i < profile.speedLines; i += 1) {
       const side = i % 2 ? 1 : -1;
       const t = ((now * 0.00023 + i * 0.13) % 1);
       const y = horizon + (floor - horizon) * t;
@@ -1170,10 +1419,10 @@ function App() {
     ctx.restore();
   };
 
-  const drawCrosshair = (ctx) => {
+  const drawCrosshair = (ctx, now) => {
     const s = stateRef.current;
     const { x, y } = s.pointer;
-    const pulse = Math.sin(performance.now() * 0.006) * 0.5 + 0.5;
+    const pulse = Math.sin(now * 0.006) * 0.5 + 0.5;
 
     ctx.save();
     ctx.strokeStyle = "rgba(233,251,255,.36)";
@@ -1212,6 +1461,7 @@ function App() {
 
   const drawMilestoneSurges = (ctx, dt) => {
     const s = stateRef.current;
+    const profile = s.renderProfile ?? RENDER_PROFILES.balanced;
 
     s.surges.forEach((surge) => {
       surge.life -= dt;
@@ -1225,7 +1475,8 @@ function App() {
       ctx.translate(surge.x, surge.y);
       ctx.rotate(surge.spin + progress * (surge.major ? 1.8 : 1.1));
 
-      for (let i = 0; i < (surge.major ? 4 : 3); i += 1) {
+      const ringCount = Math.min(surge.major ? 4 : 3, profile.surgeRingLimit);
+      for (let i = 0; i < ringCount; i += 1) {
         const radius = (surge.major ? 78 : 54) + progress * (surge.major ? 360 : 230) + i * 32;
         ctx.globalAlpha = alpha * (0.48 - i * 0.09);
         ctx.strokeStyle = `${i % 2 ? accentColor : mainColor}${0.86 - i * 0.14})`;
@@ -1235,7 +1486,7 @@ function App() {
         ctx.stroke();
       }
 
-      const bladeCount = surge.major ? 12 : 8;
+      const bladeCount = Math.min(surge.major ? 12 : 8, profile.surgeBladeLimit);
       for (let i = 0; i < bladeCount; i += 1) {
         const angle = (Math.PI * 2 * i) / bladeCount;
         const inner = 30 + progress * 50;
@@ -1251,7 +1502,7 @@ function App() {
 
       ctx.restore();
 
-      if (surge.major) {
+      if (surge.major && profile.drawMajorEcho) {
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
         ctx.globalAlpha = alpha * 0.18;
@@ -1269,6 +1520,7 @@ function App() {
 
   const drawLaserShots = (ctx, dt) => {
     const s = stateRef.current;
+    const profile = s.renderProfile ?? RENDER_PROFILES.balanced;
     s.shots.forEach((shot) => {
       shot.life -= dt;
       const shotColor =
@@ -1288,7 +1540,7 @@ function App() {
       ctx.strokeStyle = shotColor;
       ctx.lineWidth = shot.width ?? 3;
       ctx.shadowColor = glowColor;
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = 18 * profile.glowScale;
       ctx.beginPath();
       ctx.moveTo(shot.x, shot.y);
       ctx.lineTo(shot.tx, shot.ty);
@@ -1308,7 +1560,6 @@ function App() {
       particle.life -= dt;
 
       const alpha = Math.max(0, particle.life / particle.maxLife);
-      ctx.save();
       ctx.globalAlpha = alpha;
       ctx.fillStyle =
         particle.color === "orange"
@@ -1321,20 +1572,22 @@ function App() {
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
     });
 
+    ctx.globalAlpha = 1;
     s.particles = s.particles.filter((particle) => particle.life > 0);
   };
 
   const drawFloaters = (ctx, dt) => {
     const s = stateRef.current;
 
+    ctx.save();
+    ctx.font = "900 18px ui-monospace, SFMono-Regular, Consolas, monospace";
+    ctx.textAlign = "center";
     s.floaters.forEach((floater) => {
       floater.y -= 38 * dt;
       floater.life -= dt;
 
-      ctx.save();
       ctx.globalAlpha = Math.max(0, floater.life / floater.maxLife);
       ctx.fillStyle =
         floater.color === "orange"
@@ -1342,11 +1595,9 @@ function App() {
           : floater.color === "magenta"
             ? "rgba(255,63,183,.96)"
             : "rgba(0,242,254,.96)";
-      ctx.font = "900 18px ui-monospace, SFMono-Regular, Consolas, monospace";
-      ctx.textAlign = "center";
       ctx.fillText(floater.text, floater.x, floater.y);
-      ctx.restore();
     });
+    ctx.restore();
 
     s.floaters = s.floaters.filter((floater) => floater.life > 0);
   };
@@ -1400,13 +1651,14 @@ function App() {
         if (bonusActive || enemy.bonusTarget) {
           registerBonusMiss("ESCAPED");
         } else {
-          registerMiss(8);
+          registerDamage(8, "TARGET ESCAPED");
         }
       }
     });
 
     s.enemies = s.enemies.filter((enemy) => !enemy.dead);
 
+    const profile = s.renderProfile ?? RENDER_PROFILES.balanced;
     s.asteroids.forEach((asteroid) => {
       asteroid.depth += asteroid.depthSpeed * dt * 2.65;
       asteroid.lane += asteroid.vx * dt + Math.sin(now * 0.0012 + asteroid.phase) * asteroid.wobble * dt;
@@ -1419,12 +1671,12 @@ function App() {
       asteroid.hitRadius = asteroid.radius * 0.68;
       asteroid.rotation += asteroid.rotationVelocity * dt;
       asteroid.trail.push({ x: asteroid.x, y: asteroid.y });
-      if (asteroid.trail.length > 9) asteroid.trail.shift();
+      if (asteroid.trail.length > profile.asteroidTrailLimit) asteroid.trail.shift();
 
       if (asteroid.depth > 0.46 && distance(asteroid.x, asteroid.y, s.pointer.x, s.pointer.y) < asteroid.hitRadius + 8) {
         asteroid.dead = true;
         addParticles(s.pointer.x, s.pointer.y, 22, "red");
-        registerMiss(16);
+        registerDamage(16, "ASTEROID HIT");
       }
 
       if (asteroid.depth > 1.08 || asteroid.x < -180 || asteroid.x > s.width + 180) {
@@ -1443,6 +1695,18 @@ function App() {
     const ctx = canvas.getContext("2d");
     const dt = Math.min(0.033, (now - s.lastFrame) / 1000);
     s.lastFrame = now;
+
+    if (s.running && s.renderProfile?.name !== "light") {
+      s.slowFrames = dt > 0.026 ? s.slowFrames + 1 : Math.max(0, s.slowFrames - 2);
+      if (s.slowFrames > 36) {
+        s.renderProfile = RENDER_PROFILES.light;
+        s.particles = s.particles.slice(-RENDER_PROFILES.light.particleBudget);
+        s.shots = s.shots.slice(-RENDER_PROFILES.light.shotLimit);
+        s.surges = s.surges.slice(-RENDER_PROFILES.light.surgeLimit);
+        s.slowFrames = 0;
+        resizeCanvas();
+      }
+    }
 
     ctx.save();
 
@@ -1469,15 +1733,15 @@ function App() {
     drawArenaGrid(ctx, now);
     updateWorld(now, dt);
 
-    [...s.asteroids].sort((a, b) => a.depth - b.depth).forEach((asteroid) => drawAsteroid(ctx, asteroid));
-    [...s.enemies].sort((a, b) => a.depth - b.depth).forEach((enemy) => drawEnemy(ctx, enemy, now));
+    s.asteroids.sort((a, b) => a.depth - b.depth).forEach((asteroid) => drawAsteroid(ctx, asteroid));
+    s.enemies.sort((a, b) => a.depth - b.depth).forEach((enemy) => drawEnemy(ctx, enemy, now));
 
     drawMilestoneSurges(ctx, dt);
     drawLaserShots(ctx, dt);
     drawParticles(ctx, dt);
     drawFloaters(ctx, dt);
     drawShip(ctx, s.pointer.x, s.pointer.y, (s.pointer.x - s.width / 2) * 0.0008, true);
-    drawCrosshair(ctx);
+    drawCrosshair(ctx, now);
 
     ctx.restore();
 
@@ -1494,6 +1758,9 @@ function App() {
     animationRef.current = requestAnimationFrame(renderFrame);
 
     const handleResize = () => resizeCanvas();
+    const handleVisibilityChange = () => {
+      if (document.hidden) pauseTraining();
+    };
     const handleMouseMove = (event) => {
       const s = stateRef.current;
       s.pointer.x = event.clientX;
@@ -1506,11 +1773,16 @@ function App() {
       if (event.clientY > getPlayfieldBottom(s.height)) return;
 
       const enemy = hitTestEnemy(event.clientX, event.clientY);
-      if (enemy) lockEnemy(enemy);
+      s.pointerAttempts += 1;
+      if (enemy) {
+        s.pointerHits += 1;
+        lockEnemy(enemy);
+      }
       else if (isBonusTimeActive()) registerBonusMiss("EMPTY");
       else {
         playSfx("deny");
-        showNotice("NO TARGET", "bad");
+        showNotice("AIM MISS", "bad");
+        syncHud();
       }
     };
     const handleKeyDown = (event) => {
@@ -1546,6 +1818,7 @@ function App() {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       stopBgm(audioRef.current);
@@ -1554,6 +1827,7 @@ function App() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -1592,7 +1866,9 @@ function App() {
         stats={stats}
         bonusTimeActive={bonusTimeActive}
         soundEnabled={soundEnabled}
+        canPause={phase === "game" && !paused}
         onToggleSound={toggleSound}
+        onPause={pauseTraining}
       />
 
       <TargetPanel
@@ -1619,6 +1895,8 @@ function App() {
           onRetry={() => startTraining(stateRef.current.mode, stateRef.current.language)}
         />
       )}
+
+      {paused && <PauseOverlay onResume={resumeTraining} />}
 
       {notice && <div className={`notice ${notice.type}`}>{notice.text}</div>}
       {bonusTimeActive && (

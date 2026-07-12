@@ -66,9 +66,20 @@ export const initialStats = {
   wpm: 0,
   averageLock: 0,
   breaks: 0,
+  typingBreaks: 0,
   locks: 0,
+  pointerAttempts: 0,
+  pointerHits: 0,
+  pointerMisses: 0,
+  pointerAccuracy: 100,
+  totalKeys: 0,
+  damageTaken: 0,
+  mistakeKeys: [],
+  mistakeWords: [],
   noMissBreaks: 0,
   noMissKeys: 0,
+  maxNoMissBreaks: 0,
+  maxNoMissKeys: 0,
   nextNoMissBreakBonus: NO_MISS_BONUS_RULES.break.step,
   nextNoMissKeyBonus: NO_MISS_BONUS_RULES.typing.step,
   nextBonusTimeKey: BONUS_TIME_CONFIG.firstMilestone,
@@ -78,12 +89,37 @@ export const initialStats = {
 };
 
 export const RANKS = [
-  { name: "S+", threshold: 26000, label: "ACE VECTOR" },
-  { name: "S", threshold: 19000, label: "ZERO MISSILE" },
-  { name: "A", threshold: 12500, label: "CLEAN BREAKER" },
-  { name: "B", threshold: 7600, label: "FIELD LOCKER" },
-  { name: "C", threshold: 3200, label: "ROOKIE PILOT" },
-  { name: "D", threshold: 0, label: "BOOT SEQUENCE" },
+  {
+    name: "S+",
+    threshold: 118000,
+    label: "ACE VECTOR",
+    requirements: { score: 105000, accuracy: 98, pointerAccuracy: 93, wpm: 48, maxCombo: 36, typingBreaks: 52 },
+  },
+  {
+    name: "S",
+    threshold: 84000,
+    label: "ZERO MISSILE",
+    requirements: { score: 76000, accuracy: 96, pointerAccuracy: 88, wpm: 40, maxCombo: 26, typingBreaks: 36 },
+  },
+  {
+    name: "A",
+    threshold: 50000,
+    label: "CLEAN BREAKER",
+    requirements: { score: 48000, accuracy: 90, pointerAccuracy: 78, wpm: 28, maxCombo: 14, typingBreaks: 18 },
+  },
+  {
+    name: "B",
+    threshold: 28000,
+    label: "FIELD LOCKER",
+    requirements: { score: 26000, accuracy: 82, pointerAccuracy: 64, wpm: 18, maxCombo: 7, typingBreaks: 8 },
+  },
+  {
+    name: "C",
+    threshold: 10000,
+    label: "ROOKIE PILOT",
+    requirements: { score: 9000, accuracy: 65, pointerAccuracy: 40, wpm: 8, maxCombo: 2, typingBreaks: 3 },
+  },
+  { name: "D", threshold: 0, label: "BOOT SEQUENCE", requirements: {} },
 ];
 
 export const APP_URL = "https://mass-work.github.io/lock-type-shooter/";
@@ -103,16 +139,44 @@ export function getBonusTimeReward(milestone) {
   return BONUS_TIME_CONFIG.baseScore + (tier - 1) * BONUS_TIME_CONFIG.scoreRamp;
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function scoreRange(value, min, max, points) {
+  if (max <= min) return 0;
+  return clamp((value - min) / (max - min), 0, 1) * points;
+}
+
+function getRankRating(stats) {
+  const typingAccuracy = scoreRange(stats.accuracy, 88, 100, 5200);
+  const aimAccuracy = scoreRange(stats.pointerAccuracy, 78, 100, 4600);
+  const typingSpeed = scoreRange(stats.wpm, 24, 56, 5000);
+  const comboControl = scoreRange(stats.maxCombo, 8, 42, 5200);
+  const clearVolume = scoreRange(stats.typingBreaks, 12, 62, 3000);
+
+  return Math.floor(stats.score + typingAccuracy + aimAccuracy + typingSpeed + comboControl + clearVolume);
+}
+
+function meetsRankRequirements(stats, requirements = {}) {
+  return Object.entries(requirements).every(([key, value]) => (stats[key] ?? 0) >= value);
+}
+
 export function getRank(stats) {
   if (stats.breaks === 0) return RANKS[RANKS.length - 1];
 
-  const accuracyBonus = Math.max(0, stats.accuracy - 80) * 45;
-  const speedBonus = Math.min(2600, stats.wpm * 18);
-  const comboBonus = Math.min(5200, stats.maxCombo * 155);
-  const clearBonus = Math.min(3600, stats.breaks * 55);
-  const rating = stats.score + accuracyBonus + speedBonus + comboBonus + clearBonus;
+  const rating = getRankRating(stats);
+  const earnedIndex = RANKS.findIndex((rank) => rating >= rank.threshold);
+  const startIndex = earnedIndex === -1 ? RANKS.length - 1 : earnedIndex;
 
-  return RANKS.find((rank) => rating >= rank.threshold) ?? RANKS[RANKS.length - 1];
+  for (let index = startIndex; index < RANKS.length; index += 1) {
+    const rank = RANKS[index];
+    if (meetsRankRequirements(stats, rank.requirements)) {
+      return { ...rank, rating };
+    }
+  }
+
+  return { ...RANKS[RANKS.length - 1], rating };
 }
 
 export function getShareUrl(result) {
@@ -123,7 +187,7 @@ export function getShareUrl(result) {
     `スコア：${stats.score.toLocaleString()}点`,
     `ランク：${rank.name}（${rank.label}）`,
     `最大コンボ：${stats.maxCombo}`,
-    `正確率：${stats.accuracy}% / WPM：${stats.wpm}`,
+    `正確率：${stats.accuracy}% / AIM：${stats.pointerAccuracy}% / WPM：${stats.wpm}`,
     "#LockTypeShooter",
   ].join("\n");
 

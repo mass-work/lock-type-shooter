@@ -488,6 +488,13 @@ body::after {
   letter-spacing: 0.16em;
 }
 
+.lockBadge.review {
+  color: #08101b;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+  border-color: rgba(236, 251, 255, 0.72);
+  box-shadow: 0 0 18px rgba(106, 255, 189, 0.36);
+}
+
 .targetName {
   min-width: 0;
   color: var(--muted);
@@ -615,11 +622,16 @@ body::after {
     radial-gradient(circle at 50% 56%, rgba(255, 63, 183, 0.12), transparent 40%),
     rgba(1, 3, 8, 0.68);
   backdrop-filter: blur(10px);
+  overflow-y: auto;
 }
 
 .menuCard {
   position: relative;
   width: min(820px, calc(100vw - 40px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  scrollbar-color: rgba(115, 237, 255, 0.62) rgba(3, 7, 18, 0.36);
+  scrollbar-width: thin;
   padding: 34px 34px 32px;
   text-align: center;
   background:
@@ -635,6 +647,18 @@ body::after {
     inset 0 0 0 1px rgba(255, 255, 255, 0.05),
     0 0 86px rgba(115, 237, 255, 0.2),
     0 0 120px rgba(255, 63, 183, 0.1);
+}
+
+.menuCard::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menuCard::-webkit-scrollbar-track {
+  background: rgba(3, 7, 18, 0.36);
+}
+
+.menuCard::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--cyan), var(--magenta));
 }
 
 .menuCard::before,
@@ -774,9 +798,93 @@ button:hover,
 
 .resultGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 11px;
-  margin: 22px 0;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.recordBanner {
+  width: fit-content;
+  max-width: 100%;
+  margin: 10px auto 0;
+  padding: 7px 18px;
+  color: #160c02;
+  overflow: hidden;
+  background: linear-gradient(90deg, var(--orange), var(--hot), var(--green));
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: 0.12em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trainingReport {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 18px;
+  margin: 14px 0 16px;
+  padding: 14px 4px;
+  text-align: left;
+  border-block: 1px solid rgba(115, 237, 255, 0.2);
+}
+
+.nextMission {
+  padding-left: 14px;
+  border-left: 3px solid var(--green);
+}
+
+.nextMission span,
+.reviewSummary span {
+  display: block;
+  color: var(--cyan);
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+}
+
+.nextMission strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 18px;
+}
+
+.nextMission p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.reviewSummary {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+}
+
+.reviewSummary p {
+  display: grid;
+  grid-template-columns: 94px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  margin: 0;
+}
+
+.reviewSummary strong {
+  min-width: 0;
+  color: var(--hot);
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personalBest {
+  margin: -4px 0 14px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
 }
 
 .rankPlate {
@@ -936,6 +1044,29 @@ button:hover,
   box-shadow: none;
 }
 
+.pauseToggle {
+  position: fixed;
+  z-index: 42;
+  top: 92px;
+  right: 130px;
+  width: 42px;
+  min-width: 42px;
+  height: 34px;
+  padding: 0;
+  color: var(--cyan);
+  background: rgba(3, 7, 18, 0.76);
+  border-color: rgba(115, 237, 255, 0.34);
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+
+.pauseToggle span {
+  width: 4px;
+  height: 14px;
+  background: currentColor;
+  box-shadow: 8px 0 0 currentColor;
+  transform: translateX(-4px);
+}
+
 .bonusTimeCallout {
   position: fixed;
   z-index: 59;
@@ -1092,18 +1223,48 @@ button:hover,
   }
 
   .resultGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 
 @media (max-width: 620px) {
+  .waveBanner {
+    display: none;
+  }
+
   .hud {
     flex-wrap: wrap;
   }
 
   .stats {
     order: 2;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 3px;
     width: 100%;
+  }
+
+  .stats .hudItem:nth-child(6),
+  .stats .hudItem:nth-child(7) {
+    display: none;
+  }
+
+  .hudItem {
+    padding: 6px 3px 5px;
+  }
+
+  .hudItem .hudLabel {
+    font-size: 7px;
+    letter-spacing: 0.06em;
+  }
+
+  .hudItem strong {
+    font-size: 14px;
+  }
+
+  .hudItem::after {
+    height: 2px;
+    margin-top: 5px;
   }
 
   .shieldPanel {
@@ -1161,8 +1322,15 @@ button:hover,
     top: auto;
     right: 10px;
     bottom: 136px;
+    width: 84px;
     min-width: 84px;
     padding: 7px 9px;
+  }
+
+  .pauseToggle {
+    top: auto;
+    right: 104px;
+    bottom: 136px;
   }
 
   .jpPrompt {
@@ -1175,6 +1343,56 @@ button:hover,
   .shareButton {
     width: 100%;
     min-width: 0;
+  }
+
+  .pauseToggle {
+    width: 42px;
+    min-width: 42px;
+  }
+
+  .resultGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .trainingReport {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .reviewSummary p {
+    grid-template-columns: 86px minmax(0, 1fr);
+  }
+}
+
+@media (max-height: 800px) and (min-width: 621px) {
+  .menuCard {
+    padding-block: 22px;
+  }
+
+  .title.small {
+    font-size: 40px;
+  }
+
+  .rankPlate {
+    margin-top: 8px;
+    padding-block: 9px;
+  }
+
+  .rankPlate strong {
+    font-size: 44px;
+  }
+
+  .metric {
+    padding: 8px;
+  }
+
+  .metric strong {
+    font-size: 20px;
+  }
+
+  .trainingReport {
+    margin-block: 10px;
+    padding-block: 10px;
   }
 }
 
@@ -1383,6 +1601,33 @@ button:hover,
     opacity: 0;
     transform: translate(-50%, -10px) scale(1);
   }
+}
+
+body[data-render-profile="light"]::after {
+  opacity: 0.18;
+}
+
+body[data-render-profile="light"] .scanLine {
+  display: none;
+}
+
+body[data-render-profile="light"] .corner {
+  filter: none;
+}
+
+body[data-render-profile="light"] .cockpitFrame {
+  box-shadow: inset 0 0 34px rgba(115, 237, 255, 0.045);
+}
+
+body[data-render-profile="light"] .logoPanel,
+body[data-render-profile="light"] .hudItem,
+body[data-render-profile="light"] .shieldPanel,
+body[data-render-profile="light"] .targetPanel,
+body[data-render-profile="light"] .menuCard,
+body[data-render-profile="light"] .notice,
+body[data-render-profile="light"] .soundToggle,
+body[data-render-profile="light"] .bonusBanner {
+  backdrop-filter: none;
 }
 
 @media (max-width: 980px) {
