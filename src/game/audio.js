@@ -22,9 +22,9 @@ export function createAudioEngine() {
   const musicBus = ctx.createGain();
   const compressor = ctx.createDynamicsCompressor();
 
-  master.gain.value = 0.36;
-  sfxBus.gain.value = 0.86;
-  musicBus.gain.value = 0.16;
+  master.gain.value = 0.48;
+  sfxBus.gain.value = 0.96;
+  musicBus.gain.value = 0.18;
 
   compressor.threshold.value = -18;
   compressor.knee.value = 18;
@@ -45,6 +45,20 @@ export function createAudioEngine() {
     noiseBuffer: makeNoiseBuffer(ctx),
     bgm: null,
   };
+}
+
+export async function resumeAudioEngine(engine) {
+  if (!engine?.ctx || engine.ctx.state === "closed") return false;
+
+  if (engine.ctx.state !== "running") {
+    try {
+      await engine.ctx.resume();
+    } catch {
+      return false;
+    }
+  }
+
+  return engine.ctx.state === "running";
 }
 
 function rampGain(gain, start, peak, attack, duration, curve = "exp") {

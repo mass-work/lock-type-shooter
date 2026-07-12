@@ -13,7 +13,7 @@ import {
   getRank,
   initialStats,
 } from "./game/gameConfig";
-import { createAudioEngine, playSfx as playAudioSfx, startBgm, stopBgm } from "./game/audio";
+import { createAudioEngine, playSfx as playAudioSfx, resumeAudioEngine, startBgm, stopBgm } from "./game/audio";
 import { clamp, distance, getPlayfieldBottom, random } from "./game/math";
 import { getTrainingInsight, saveSessionProgress } from "./game/progress";
 import {
@@ -203,22 +203,45 @@ function App() {
   const getAudioEngine = (force = false) => {
     if (!force && !soundEnabledRef.current) return null;
 
+    if (audioRef.current?.ctx?.state === "closed") {
+      audioRef.current = null;
+    }
+
     if (!audioRef.current) {
-      audioRef.current = createAudioEngine();
+      try {
+        audioRef.current = createAudioEngine();
+      } catch {
+        audioRef.current = null;
+      }
     }
 
     const engine = audioRef.current;
     if (!engine) return null;
-    if (engine.ctx.state === "suspended") {
-      void engine.ctx.resume();
-    }
+    void resumeAudioEngine(engine);
 
     return engine;
   };
 
+  const startBgmWhenReady = (engine = getAudioEngine()) => {
+    if (!engine) return;
+
+    void resumeAudioEngine(engine).then((ready) => {
+      const s = stateRef.current;
+      if (ready && soundEnabledRef.current && s.running && !s.over && !s.paused) {
+        startBgm(engine);
+      }
+    });
+  };
+
   const playSfx = (name, options = {}) => {
     const engine = getAudioEngine();
-    playAudioSfx(engine, name, options);
+    if (!engine) return;
+
+    void resumeAudioEngine(engine).then((ready) => {
+      if (ready && soundEnabledRef.current) {
+        playAudioSfx(engine, name, options);
+      }
+    });
   };
 
   const toggleSound = () => {
@@ -230,8 +253,8 @@ function App() {
     if (next) {
       const engine = getAudioEngine(true);
       const s = stateRef.current;
-      if (s.running && !s.over) startBgm(engine);
-      window.setTimeout(() => playSfx("start"), 0);
+      if (s.running && !s.over && !s.paused) startBgmWhenReady(engine);
+      playSfx("start");
     } else if (audioRef.current) {
       stopBgm(audioRef.current);
       if (audioRef.current.ctx.state === "running") {
@@ -271,7 +294,7 @@ function App() {
     s.running = true;
     s.lastFrame = now;
     setPaused(false);
-    startBgm(getAudioEngine());
+    startBgmWhenReady();
     showNotice("TRAINING RESUMED", "good");
     syncHud();
   };
@@ -1056,8 +1079,6 @@ function App() {
   const startTraining = (nextMode = "normal", nextLanguage = language) => {
     blurActiveControl();
     const engine = getAudioEngine();
-    startBgm(engine);
-    playSfx("start");
     setMode(nextMode);
     setLanguage(nextLanguage);
     setPaused(false);
@@ -1073,6 +1094,8 @@ function App() {
     s.lastAsteroid = performance.now();
 
     spawnEnemy();
+    startBgmWhenReady(engine);
+    playSfx("start");
 
     setPhase("game");
     setResult(null);
