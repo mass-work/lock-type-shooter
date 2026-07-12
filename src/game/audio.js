@@ -1,9 +1,14 @@
-const BGM_STEP_INTERVAL = 0.145;
-const BGM_LOOKAHEAD = 0.14;
-const BGM_LEAD_TIME = 0.045;
-const BGM_SAFE_START = 0.008;
-const BGM_MAX_STEPS_PER_TICK = 3;
-const BGM_LEVEL = 0.12;
+const BGM_LEVEL = 0.34;
+const BGM_FADE_IN = 1.1;
+const BGM_FADE_OUT = 0.24;
+
+const AMBIENT_VOICES = [
+  { frequency: 55, type: "sine", gain: 0.024, filterFrequency: 180, detune: -3 },
+  { frequency: 110, type: "triangle", gain: 0.012, filterFrequency: 420, detune: 4 },
+  { frequency: 164.81, type: "triangle", gain: 0.008, filterFrequency: 720, detune: -5 },
+  { frequency: 329.63, type: "sine", gain: 0.0045, filterFrequency: 1500, detune: 6 },
+  { frequency: 440, type: "sine", gain: 0.003, filterFrequency: 2200, detune: -8 },
+];
 
 function makeNoiseBuffer(ctx) {
   const length = Math.floor(ctx.sampleRate * 1.2);
@@ -31,13 +36,13 @@ export function createAudioEngine() {
 
   master.gain.value = 0.48;
   sfxBus.gain.value = 0.96;
-  musicBus.gain.value = BGM_LEVEL;
+  musicBus.gain.value = 0.0001;
 
-  compressor.threshold.value = -18;
-  compressor.knee.value = 18;
-  compressor.ratio.value = 4;
-  compressor.attack.value = 0.006;
-  compressor.release.value = 0.18;
+  compressor.threshold.value = -22;
+  compressor.knee.value = 10;
+  compressor.ratio.value = 7;
+  compressor.attack.value = 0.003;
+  compressor.release.value = 0.16;
 
   sfxBus.connect(master);
   musicBus.connect(master);
@@ -80,6 +85,18 @@ function rampGain(gain, start, peak, attack, duration, curve = "exp") {
   }
 }
 
+function disconnectOnEnd(source, nodes) {
+  source.addEventListener("ended", () => {
+    nodes.forEach((node) => {
+      try {
+        node.disconnect();
+      } catch {
+        // The node may already have been disconnected during BGM shutdown.
+      }
+    });
+  }, { once: true });
+}
+
 function tone(engine, frequency, duration, config = {}) {
   const { ctx, sfxBus } = engine;
   const start = ctx.currentTime + (config.delay ?? 0);
@@ -87,6 +104,7 @@ function tone(engine, frequency, duration, config = {}) {
   const gain = ctx.createGain();
   const destination = config.destination ?? sfxBus;
   let output = gain;
+  const nodes = [osc, gain];
 
   osc.type = config.type ?? "sine";
   osc.frequency.setValueAtTime(Math.max(20, frequency), start);
@@ -109,10 +127,12 @@ function tone(engine, frequency, duration, config = {}) {
     filter.Q.value = config.q ?? 1.2;
     gain.connect(filter);
     output = filter;
+    nodes.push(filter);
   }
 
   osc.connect(gain);
   output.connect(destination);
+  disconnectOnEnd(osc, nodes);
   osc.start(start);
   osc.stop(start + duration + 0.04);
 }
@@ -134,6 +154,7 @@ function noise(engine, duration, config = {}) {
   source.connect(filter);
   filter.connect(gain);
   gain.connect(config.destination ?? sfxBus);
+  disconnectOnEnd(source, [source, filter, gain]);
   source.start(start);
   source.stop(start + duration + 0.04);
 }
@@ -219,130 +240,119 @@ export function playSfx(engine, name, options = {}) {
   }
 }
 
-function musicTone(engine, time, frequency, duration, config = {}) {
+function createAmbientVoice(engine, config, index) {
   const { ctx, musicBus } = engine;
-  const start = Math.max(time, ctx.currentTime + BGM_SAFE_START);
+  const start = ctx.currentTime;
   const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
   const filter = ctx.createBiquadFilter();
-  osc.type = config.type ?? "sawtooth";
-  osc.frequency.setValueAtTime(frequency, start);
-  if (config.to) {
-    osc.frequency.exponentialRampToValueAtTime(Math.max(20, config.to), start + duration);
-  }
-  filter.type = config.filterType ?? "lowpass";
-  filter.frequency.setValueAtTime(config.filterFrequency ?? 680, start);
-  filter.Q.value = config.q ?? 1.2;
-  rampGain(gain, start, config.gain ?? 0.03, config.attack ?? 0.012, duration, "linear");
+  const gain = ctx.createGain();
+  const gainLfo = ctx.createOscillator();
+  const gainDepth = ctx.createGain();
+  const filterLfo = ctx.createOscillator();
+  const filterDepth = ctx.createGain();
+
+  osc.type = config.type;
+  osc.frequency.setValueAtTime(config.frequency, start);
+  osc.detune.setValueAtTime(config.detune, start);
+
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(config.filterFrequency, start);
+  filter.Q.setValueAtTime(0.7, start);
+
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.linearRampToValueAtTime(config.gain, start + BGM_FADE_IN + index * 0.12);
+
+  gainLfo.type = "sine";
+  gainLfo.frequency.setValueAtTime(0.055 + index * 0.009, start);
+  gainDepth.gain.setValueAtTime(0, start);
+  gainDepth.gain.linearRampToValueAtTime(config.gain * 0.18, start + BGM_FADE_IN);
+  gainLfo.connect(gainDepth);
+  gainDepth.connect(gain.gain);
+
+  filterLfo.type = "sine";
+  filterLfo.frequency.setValueAtTime(0.027 + index * 0.006, start);
+  filterDepth.gain.setValueAtTime(config.filterFrequency * 0.14, start);
+  filterLfo.connect(filterDepth);
+  filterDepth.connect(filter.frequency);
+
   osc.connect(filter);
   filter.connect(gain);
   gain.connect(musicBus);
+
   osc.start(start);
-  osc.stop(start + duration + 0.03);
-}
+  gainLfo.start(start);
+  filterLfo.start(start);
 
-function musicNoise(engine, time, duration, config = {}) {
-  const { ctx, musicBus, noiseBuffer } = engine;
-  const start = Math.max(time, ctx.currentTime + BGM_SAFE_START);
-  const source = ctx.createBufferSource();
-  const filter = ctx.createBiquadFilter();
-  const gain = ctx.createGain();
-  source.buffer = noiseBuffer;
-  filter.type = config.filterType ?? "highpass";
-  filter.frequency.setValueAtTime(config.frequency ?? 5200, start);
-  filter.Q.value = config.q ?? 0.8;
-  rampGain(gain, start, config.gain ?? 0.012, config.attack ?? 0.008, duration, "linear");
-  source.connect(filter);
-  filter.connect(gain);
-  gain.connect(musicBus);
-  source.start(start);
-  source.stop(start + duration + 0.02);
-}
-
-function scheduleBgmStep(engine, time, step) {
-  const bass = [55, 0, 55, 82.41, 55, 0, 98, 82.41, 55, 0, 73.42, 82.41, 65.41, 0, 98, 82.41];
-  const arp = [440, 523.25, 659.25, 880, 659.25, 523.25, 440, 392];
-  const bassNote = bass[step % bass.length];
-
-  if (step % 8 === 0) {
-    musicTone(engine, time, 70, 0.14, { to: 46, type: "sine", gain: 0.024, attack: 0.024, filterFrequency: 220 });
-  }
-
-  if (bassNote) {
-    musicTone(engine, time, bassNote, 0.14, {
-      type: "sawtooth",
-      gain: step % 4 === 0 ? 0.026 : 0.02,
-      attack: 0.016,
-      filterFrequency: 360,
-      q: 1.5,
-    });
-  }
-
-  if (step % 2 === 1) {
-    musicNoise(engine, time, 0.032, { gain: 0.006 + (step % 4 === 1 ? 0.002 : 0), frequency: 5200 });
-  }
-
-  if (step % 4 === 2 || step % 8 === 6) {
-    musicTone(engine, time + 0.01, arp[(step / 2) % arp.length], 0.08, {
-      type: "triangle",
-      gain: 0.014,
-      attack: 0.014,
-      filterType: "bandpass",
-      filterFrequency: 1600,
-      q: 4,
-    });
-  }
+  return {
+    sources: [osc, gainLfo, filterLfo],
+    gain,
+    modulationGains: [gainDepth, filterDepth],
+    nodes: [osc, filter, gain, gainLfo, gainDepth, filterLfo, filterDepth],
+  };
 }
 
 export function startBgm(engine) {
-  if (!engine || engine.bgm?.active) return;
+  if (!engine || engine.bgm?.active || engine.ctx.state !== "running") return;
 
   const { ctx, musicBus } = engine;
   const bgm = {
     active: true,
-    step: 0,
-    nextTime: ctx.currentTime + BGM_LEAD_TIME,
-    timer: null,
+    voices: [],
   };
 
   musicBus.gain.cancelScheduledValues(ctx.currentTime);
   musicBus.gain.setValueAtTime(Math.max(0.0001, musicBus.gain.value), ctx.currentTime);
-  musicBus.gain.linearRampToValueAtTime(BGM_LEVEL, ctx.currentTime + 0.45);
-
-  const schedule = () => {
-    if (!bgm.active || ctx.state !== "running") return;
-
-    const now = ctx.currentTime;
-    if (bgm.nextTime < now + BGM_SAFE_START) {
-      bgm.nextTime = now + BGM_LEAD_TIME;
-    }
-
-    let scheduled = 0;
-    while (bgm.nextTime < now + BGM_LOOKAHEAD && scheduled < BGM_MAX_STEPS_PER_TICK) {
-      scheduleBgmStep(engine, bgm.nextTime, bgm.step);
-      bgm.step = (bgm.step + 1) % 32;
-      bgm.nextTime += BGM_STEP_INTERVAL;
-      scheduled += 1;
-    }
-
-    if (scheduled >= BGM_MAX_STEPS_PER_TICK && bgm.nextTime < ctx.currentTime + BGM_SAFE_START) {
-      bgm.nextTime = ctx.currentTime + BGM_LEAD_TIME;
-    }
-  };
+  musicBus.gain.linearRampToValueAtTime(BGM_LEVEL, ctx.currentTime + BGM_FADE_IN);
 
   engine.bgm = bgm;
-  schedule();
-  bgm.timer = window.setInterval(schedule, 70);
+  bgm.voices = AMBIENT_VOICES.map((voice, index) => createAmbientVoice(engine, voice, index));
 }
 
 export function stopBgm(engine) {
   if (!engine?.bgm) return;
 
   const { ctx, musicBus } = engine;
-  engine.bgm.active = false;
-  window.clearInterval(engine.bgm.timer);
+  const bgm = engine.bgm;
+  const now = ctx.currentTime;
+  const stopAt = now + BGM_FADE_OUT + 0.04;
+
+  bgm.active = false;
   engine.bgm = null;
-  musicBus.gain.cancelScheduledValues(ctx.currentTime);
-  musicBus.gain.setValueAtTime(Math.max(0.0001, musicBus.gain.value), ctx.currentTime);
-  musicBus.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
+
+  musicBus.gain.cancelScheduledValues(now);
+  musicBus.gain.setValueAtTime(Math.max(0.0001, musicBus.gain.value), now);
+  musicBus.gain.linearRampToValueAtTime(0.0001, now + BGM_FADE_OUT);
+
+  bgm.voices.forEach((voice) => {
+    voice.gain.gain.cancelScheduledValues(now);
+    voice.gain.gain.setValueAtTime(Math.max(0.0001, voice.gain.gain.value), now);
+    voice.gain.gain.linearRampToValueAtTime(0.0001, now + BGM_FADE_OUT);
+    voice.modulationGains.forEach((modulationGain) => {
+      modulationGain.gain.cancelScheduledValues(now);
+      modulationGain.gain.setValueAtTime(modulationGain.gain.value, now);
+      modulationGain.gain.linearRampToValueAtTime(0, now + BGM_FADE_OUT);
+    });
+
+    let ended = 0;
+    const disconnectVoice = () => {
+      ended += 1;
+      if (ended !== voice.sources.length) return;
+      voice.nodes.forEach((node) => {
+        try {
+          node.disconnect();
+        } catch {
+          // A previous shutdown may already have disconnected this node.
+        }
+      });
+    };
+
+    voice.sources.forEach((source) => {
+      source.addEventListener("ended", disconnectVoice, { once: true });
+      try {
+        source.stop(stopAt);
+      } catch {
+        disconnectVoice();
+      }
+    });
+  });
 }

@@ -257,9 +257,6 @@ function App() {
       playSfx("start");
     } else if (audioRef.current) {
       stopBgm(audioRef.current);
-      if (audioRef.current.ctx.state === "running") {
-        void audioRef.current.ctx.suspend();
-      }
     }
   };
 
