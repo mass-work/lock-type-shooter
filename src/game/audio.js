@@ -1,3 +1,10 @@
+const BGM_STEP_INTERVAL = 0.145;
+const BGM_LOOKAHEAD = 0.14;
+const BGM_LEAD_TIME = 0.045;
+const BGM_SAFE_START = 0.008;
+const BGM_MAX_STEPS_PER_TICK = 3;
+const BGM_LEVEL = 0.12;
+
 function makeNoiseBuffer(ctx) {
   const length = Math.floor(ctx.sampleRate * 1.2);
   const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
@@ -24,7 +31,7 @@ export function createAudioEngine() {
 
   master.gain.value = 0.48;
   sfxBus.gain.value = 0.96;
-  musicBus.gain.value = 0.18;
+  musicBus.gain.value = BGM_LEVEL;
 
   compressor.threshold.value = -18;
   compressor.knee.value = 18;
@@ -214,40 +221,42 @@ export function playSfx(engine, name, options = {}) {
 
 function musicTone(engine, time, frequency, duration, config = {}) {
   const { ctx, musicBus } = engine;
+  const start = Math.max(time, ctx.currentTime + BGM_SAFE_START);
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   const filter = ctx.createBiquadFilter();
   osc.type = config.type ?? "sawtooth";
-  osc.frequency.setValueAtTime(frequency, time);
+  osc.frequency.setValueAtTime(frequency, start);
   if (config.to) {
-    osc.frequency.exponentialRampToValueAtTime(Math.max(20, config.to), time + duration);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, config.to), start + duration);
   }
   filter.type = config.filterType ?? "lowpass";
-  filter.frequency.setValueAtTime(config.filterFrequency ?? 680, time);
+  filter.frequency.setValueAtTime(config.filterFrequency ?? 680, start);
   filter.Q.value = config.q ?? 1.2;
-  rampGain(gain, time, config.gain ?? 0.03, config.attack ?? 0.008, duration, "linear");
+  rampGain(gain, start, config.gain ?? 0.03, config.attack ?? 0.012, duration, "linear");
   osc.connect(filter);
   filter.connect(gain);
   gain.connect(musicBus);
-  osc.start(time);
-  osc.stop(time + duration + 0.03);
+  osc.start(start);
+  osc.stop(start + duration + 0.03);
 }
 
 function musicNoise(engine, time, duration, config = {}) {
   const { ctx, musicBus, noiseBuffer } = engine;
+  const start = Math.max(time, ctx.currentTime + BGM_SAFE_START);
   const source = ctx.createBufferSource();
   const filter = ctx.createBiquadFilter();
   const gain = ctx.createGain();
   source.buffer = noiseBuffer;
   filter.type = config.filterType ?? "highpass";
-  filter.frequency.setValueAtTime(config.frequency ?? 5200, time);
+  filter.frequency.setValueAtTime(config.frequency ?? 5200, start);
   filter.Q.value = config.q ?? 0.8;
-  rampGain(gain, time, config.gain ?? 0.012, 0.004, duration, "linear");
+  rampGain(gain, start, config.gain ?? 0.012, config.attack ?? 0.008, duration, "linear");
   source.connect(filter);
   filter.connect(gain);
   gain.connect(musicBus);
-  source.start(time);
-  source.stop(time + duration + 0.02);
+  source.start(start);
+  source.stop(start + duration + 0.02);
 }
 
 function scheduleBgmStep(engine, time, step) {
@@ -256,26 +265,28 @@ function scheduleBgmStep(engine, time, step) {
   const bassNote = bass[step % bass.length];
 
   if (step % 8 === 0) {
-    musicTone(engine, time, 70, 0.16, { to: 42, type: "sine", gain: 0.052, filterFrequency: 220 });
+    musicTone(engine, time, 70, 0.14, { to: 46, type: "sine", gain: 0.024, attack: 0.024, filterFrequency: 220 });
   }
 
   if (bassNote) {
     musicTone(engine, time, bassNote, 0.14, {
       type: "sawtooth",
-      gain: step % 4 === 0 ? 0.045 : 0.034,
+      gain: step % 4 === 0 ? 0.026 : 0.02,
+      attack: 0.016,
       filterFrequency: 360,
       q: 1.5,
     });
   }
 
   if (step % 2 === 1) {
-    musicNoise(engine, time, 0.035, { gain: 0.01 + (step % 4 === 1 ? 0.004 : 0), frequency: 5200 });
+    musicNoise(engine, time, 0.032, { gain: 0.006 + (step % 4 === 1 ? 0.002 : 0), frequency: 5200 });
   }
 
   if (step % 4 === 2 || step % 8 === 6) {
     musicTone(engine, time + 0.01, arp[(step / 2) % arp.length], 0.08, {
       type: "triangle",
-      gain: 0.018,
+      gain: 0.014,
+      attack: 0.014,
       filterType: "bandpass",
       filterFrequency: 1600,
       q: 4,
@@ -290,20 +301,32 @@ export function startBgm(engine) {
   const bgm = {
     active: true,
     step: 0,
-    nextTime: ctx.currentTime + 0.06,
+    nextTime: ctx.currentTime + BGM_LEAD_TIME,
     timer: null,
   };
 
   musicBus.gain.cancelScheduledValues(ctx.currentTime);
   musicBus.gain.setValueAtTime(Math.max(0.0001, musicBus.gain.value), ctx.currentTime);
-  musicBus.gain.linearRampToValueAtTime(0.16, ctx.currentTime + 0.45);
+  musicBus.gain.linearRampToValueAtTime(BGM_LEVEL, ctx.currentTime + 0.45);
 
   const schedule = () => {
-    if (!bgm.active) return;
-    while (bgm.nextTime < ctx.currentTime + 0.22) {
+    if (!bgm.active || ctx.state !== "running") return;
+
+    const now = ctx.currentTime;
+    if (bgm.nextTime < now + BGM_SAFE_START) {
+      bgm.nextTime = now + BGM_LEAD_TIME;
+    }
+
+    let scheduled = 0;
+    while (bgm.nextTime < now + BGM_LOOKAHEAD && scheduled < BGM_MAX_STEPS_PER_TICK) {
       scheduleBgmStep(engine, bgm.nextTime, bgm.step);
       bgm.step = (bgm.step + 1) % 32;
-      bgm.nextTime += 0.145;
+      bgm.nextTime += BGM_STEP_INTERVAL;
+      scheduled += 1;
+    }
+
+    if (scheduled >= BGM_MAX_STEPS_PER_TICK && bgm.nextTime < ctx.currentTime + BGM_SAFE_START) {
+      bgm.nextTime = ctx.currentTime + BGM_LEAD_TIME;
     }
   };
 
